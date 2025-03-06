@@ -1,6 +1,7 @@
 package com.github.yewyc.javahttpclient;
 
 import com.github.yewyc.MeasureLatency;
+import com.github.yewyc.Task;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -9,6 +10,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+
+import static com.github.yewyc.TheBlackhole.consume;
 
 public class JavaHttpClientExample {
 
@@ -25,14 +28,14 @@ public class JavaHttpClientExample {
                         .GET()
                         .build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                int statusCode = response.statusCode();
-                String body = response.body();
+                consume(response.statusCode());
+                consume(response.body());
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
         };
 
-        new MeasureLatency().configure(60, 1000, 1).measure(runnable).generateReport();
+        new MeasureLatency().addTask(new Task("hello", runnable)).start(60, 1000, 1).generateReport();
     }
 
     public static class JavaHttpClient {
