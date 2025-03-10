@@ -17,8 +17,8 @@ public class Task {
         return name;
     }
 
-    public Runnable getAction() {
-        return action;
+    public void run() {
+        this.action.run();
     }
 
     public void configure(long timeNs) {

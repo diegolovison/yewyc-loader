@@ -21,7 +21,7 @@ public class JavaHttpClientExample {
 
         JavaHttpClient client = new JavaHttpClient();
 
-        Runnable runnable = () -> {
+        Task task1 = new Task("hello", () -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello"))
@@ -33,9 +33,23 @@ public class JavaHttpClientExample {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        };
+        });
 
-        new MeasureLatency().addTask(new Task("hello", runnable)).start(60, 1000, 1).generateReport();
+        Task task2 = new Task("my-name", () -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                consume(response.statusCode());
+                consume(response.body());
+            } catch (IOException | InterruptedException e) {
+                LOGGER.error(e);
+            }
+        });
+
+        new MeasureLatency(60, 1000, 1).addTask(task1, task2).start().generateReport();
     }
 
     public static class JavaHttpClient {
