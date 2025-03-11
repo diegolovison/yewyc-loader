@@ -1,15 +1,9 @@
 package com.github.yewyc;
 
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.HdrHistogram.Histogram;
 import org.jboss.logging.Logger;
-import tech.tablesaw.api.LongColumn;
-import tech.tablesaw.api.NumericColumn;
-import tech.tablesaw.api.Table;
-import tech.tablesaw.plotly.Plot;
-import tech.tablesaw.plotly.components.Figure;
-import tech.tablesaw.plotly.components.Layout;
 import tech.tablesaw.plotly.traces.ScatterTrace;
+import tech.tablesaw.plotly.traces.TraceBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +17,7 @@ public class Task {
     private final boolean trackData;
     private Histogram latencyHistogram;
 
-    private List<Long> data = new ArrayList<>();
+    private List<Double> data = new ArrayList<>();
 
     public Task(String name, Runnable action) {
         this(name, action, false);
@@ -36,7 +30,11 @@ public class Task {
     }
 
     public String getName() {
-        return name;
+        return this.name;
+    }
+
+    public boolean hasTrackData() {
+        return this.trackData;
     }
 
     public void run() {
@@ -50,7 +48,8 @@ public class Task {
     public void recordValue(long value) {
         this.latencyHistogram.recordValue(value);
         if (this.trackData) {
-            this.data.add(value);
+            // ns to ms
+            this.data.add(value / 1000000.0);
         }
     }
 
@@ -71,29 +70,17 @@ public class Task {
         System.out.println("\t---");
     }
 
-    public void plot() {
+    public TraceBuilder plot() {
         if (!this.trackData) {
             LOGGER.warn("Cannot plot because trackData is disabled. Set trackData to true in order to plot the data.");
-            return;
+            return null;
         }
-        LongArrayList operations = new LongArrayList();
-        LongArrayList latency = new LongArrayList();
+        double[] operations = new double[this.data.size()];
+        double[] latency = new double[this.data.size()];
         for (int i = 0; i < this.data.size(); i++) {
-            operations.add(i + 1);
-            latency.add(this.data.get(i));
+            operations[i] = i + 1;
+            latency[i] = this.data.get(i);
         }
-
-        Table robberies =
-                Table.create("Latency")
-                        .addColumns(
-                                LongColumn.create("Operation", operations.longStream()),
-                                LongColumn.create("Latency ns", latency.longStream()));
-
-        NumericColumn<?> x = robberies.nCol("Operation");
-        NumericColumn<?> y = robberies.nCol("Latency ns");
-
-        Layout layout = Layout.builder().title("Latency - " + this.getName()).build();
-        ScatterTrace trace = ScatterTrace.builder(x, y).mode(ScatterTrace.Mode.LINE).build();
-        Plot.show(new Figure(layout, trace));
+        return ScatterTrace.builder(operations, latency).mode(ScatterTrace.Mode.LINE).name(this.getName());
     }
 }

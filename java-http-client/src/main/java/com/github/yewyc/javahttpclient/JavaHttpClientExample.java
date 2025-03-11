@@ -1,6 +1,7 @@
 package com.github.yewyc.javahttpclient;
 
 import com.github.yewyc.MeasureLatency;
+import com.github.yewyc.MeasureLatencyType;
 import com.github.yewyc.Task;
 import org.jboss.logging.Logger;
 
@@ -21,7 +22,7 @@ public class JavaHttpClientExample {
 
         JavaHttpClient client = new JavaHttpClient();
 
-        Task task1 = new Task("hello", () -> {
+        Task task1 = new Task("http-request-hello", () -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello"))
@@ -35,7 +36,7 @@ public class JavaHttpClientExample {
             }
         }, true);
 
-        Task task2 = new Task("my-name", () -> {
+        Task task2 = new Task("http-request-my-name", () -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
@@ -49,7 +50,7 @@ public class JavaHttpClientExample {
             }
         }, true);
 
-        MeasureLatency measure = new MeasureLatency(60, 1000, 1, 5).addTask(task1, task2).start();
+        MeasureLatency measure = new MeasureLatency(60, 1000, 1, 5, MeasureLatencyType.GLOBAL).addTask(task1, task2).start();
         measure.generateReport().plot();
     }
 

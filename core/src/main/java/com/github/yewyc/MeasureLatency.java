@@ -1,7 +1,15 @@
 package com.github.yewyc;
 
 import org.jboss.logging.Logger;
+import tech.tablesaw.plotly.Plot;
+import tech.tablesaw.plotly.components.Figure;
+import tech.tablesaw.plotly.components.Grid;
+import tech.tablesaw.plotly.components.Layout;
+import tech.tablesaw.plotly.traces.Trace;
+import tech.tablesaw.plotly.traces.TraceBuilder;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -17,8 +25,9 @@ public class MeasureLatency {
     private final long timeNs;
     private final long intervalNs;
     private final long warmUpTimeSec;
+    private final MeasureLatencyType latencyType;
 
-    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
+    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, MeasureLatencyType latencyType) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -32,6 +41,7 @@ public class MeasureLatency {
         this.timeNs = TimeUnit.SECONDS.toNanos(timeSec);
         this.intervalNs = 1000000000 / opsPerSec;
         this.warmUpTimeSec = warmUpTimeSec;
+        this.latencyType = latencyType;
     }
 
     public MeasureLatency addTask(Task... tasks) {
@@ -43,10 +53,6 @@ public class MeasureLatency {
     }
 
     public MeasureLatency start() {
-        return this.start(MeasureLatencyType.GLOBAL);
-    }
-
-    public MeasureLatency start(MeasureLatencyType type) {
 
         this.warmUp();
 
@@ -73,13 +79,13 @@ public class MeasureLatency {
                     if (end - start > timeNs) {
                         break outer;
                     }
-                    if (MeasureLatencyType.GLOBAL.equals(type)) {
+                    if (MeasureLatencyType.GLOBAL.equals(this.latencyType)) {
                         task.recordValue(end - intendedTime);
-                    } else if(MeasureLatencyType.INDIVIDUAL.equals(type)) {
+                    } else if(MeasureLatencyType.INDIVIDUAL.equals(this.latencyType)) {
                         task.recordValue(end - intendedTime - taskElapsed);
                         taskElapsed = end - taskStarted;
                     } else {
-                        throw new RuntimeException(type + " not implemented");
+                        throw new RuntimeException(this.latencyType + " not implemented");
                     }
                 }
             }
@@ -101,8 +107,21 @@ public class MeasureLatency {
     }
 
     public MeasureLatency plot() {
+        List<Trace> traces = new ArrayList<>();
+        // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
+        int i = 1;
         for (Task task : this.tasks) {
-            task.plot();
+            if (task.hasTrackData()) {
+                // xAxis and yAxis diff names are required to have different sub-plots
+                TraceBuilder traceBuilder = task.plot().xAxis("x" + i).yAxis("y" + i);
+                traces.add(build(traceBuilder));
+                i += 1;
+            }
+        }
+        if (traces.size() > 0) {
+            Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
+            Layout layout = Layout.builder().title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
+            Plot.show(new Figure(layout, traces.stream().toArray(Trace[]::new)));
         }
         return this;
     }
@@ -130,5 +149,17 @@ public class MeasureLatency {
                 executor.submit(wrapperTask);
             }
         } // The executor automatically shuts down here
+    }
+
+    private Trace build(TraceBuilder traceBuilder) {
+        Method method;
+        try {
+            method = traceBuilder.getClass().getDeclaredMethod("build");
+            method.setAccessible(true);
+            Trace trace = (Trace) method.invoke(traceBuilder);
+            return trace;
+        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new RuntimeException("Problem invoking the build method", e);
+        }
     }
 }
