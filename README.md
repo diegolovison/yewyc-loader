@@ -81,7 +81,7 @@ This example uses the [Quarkus Getting Started](https://github.com/quarkusio/qua
    You can run it directly from your IDE or using Maven:
 
    ```bash
-   $ mvn compile exec:java -Dexec.mainClass="com.github.yewyc.javahttpclient.JavaHttpClientExample"
+   $ mvn clean install && mvn compile exec:java -Dexec.mainClass="com.github.yewyc.javahttpclient.JavaHttpClientExample" -pl java-http-client
    ```
 
    This will execute a load test for 60 seconds with 1000 operations per second using 1 virtual thread, targeting the Quarkus application running at `http://localhost:8080`. It will measure GLOBAL latency and generate a report and plot.

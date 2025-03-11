@@ -3,10 +3,12 @@ package com.github.yewyc;
 import org.HdrHistogram.Histogram;
 import org.jboss.logging.Logger;
 import tech.tablesaw.plotly.traces.ScatterTrace;
-import tech.tablesaw.plotly.traces.TraceBuilder;
+import tech.tablesaw.plotly.traces.Trace;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class Task {
 
@@ -70,7 +72,7 @@ public class Task {
         System.out.println("\t---");
     }
 
-    public TraceBuilder plot() {
+    public Trace plot(int chartIndex) {
         if (!this.trackData) {
             LOGGER.warn("Cannot plot because trackData is disabled. Set trackData to true in order to plot the data.");
             return null;
@@ -81,6 +83,12 @@ public class Task {
             operations[i] = i + 1;
             latency[i] = this.data.get(i);
         }
-        return ScatterTrace.builder(operations, latency).mode(ScatterTrace.Mode.LINE).name(this.getName());
+        ScatterTrace trace = ScatterTrace.builder(operations, latency)
+                .mode(ScatterTrace.Mode.LINE)
+                .name(this.getName())
+                .xAxis("x" + chartIndex).yAxis("y" + chartIndex)
+                .fill(TO_ZERO_Y)
+                .build();
+        return trace;
     }
 }

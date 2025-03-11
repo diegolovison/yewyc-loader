@@ -6,13 +6,13 @@ import tech.tablesaw.plotly.components.Figure;
 import tech.tablesaw.plotly.components.Grid;
 import tech.tablesaw.plotly.components.Layout;
 import tech.tablesaw.plotly.traces.Trace;
-import tech.tablesaw.plotly.traces.TraceBuilder;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 public class MeasureLatency {
@@ -136,9 +136,7 @@ public class MeasureLatency {
         int i = 1;
         for (Task task : this.tasks) {
             if (task.hasTrackData()) {
-                // xAxis and yAxis diff names are required to have different sub-plots
-                TraceBuilder traceBuilder = task.plot().xAxis("x" + i).yAxis("y" + i);
-                traces.add(build(traceBuilder));
+                traces.add(task.plot(i));
                 i += 1;
             }
         }
@@ -173,17 +171,5 @@ public class MeasureLatency {
                 executor.submit(wrapperTask);
             }
         } // The executor automatically shuts down here
-    }
-
-    private Trace build(TraceBuilder traceBuilder) {
-        Method method;
-        try {
-            method = traceBuilder.getClass().getDeclaredMethod("build");
-            method.setAccessible(true);
-            Trace trace = (Trace) method.invoke(traceBuilder);
-            return trace;
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new RuntimeException("Problem invoking the build method", e);
-        }
     }
 }
