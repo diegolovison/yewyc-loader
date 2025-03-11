@@ -91,4 +91,10 @@ public class MeasureLatency {
             task.report(this.intervalNs);
         }
     }
+
+    public void plot() {
+        for (Task task : this.tasks) {
+            task.plot();
+        }
+    }
 }

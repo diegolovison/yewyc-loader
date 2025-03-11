@@ -33,7 +33,7 @@ public class JavaHttpClientExample {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        });
+        }, true);
 
         Task task2 = new Task("my-name", () -> {
             try {
@@ -47,9 +47,11 @@ public class JavaHttpClientExample {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        });
+        }, true);
 
-        new MeasureLatency(60, 1000, 1).addTask(task1, task2).start().generateReport();
+        MeasureLatency measure = new MeasureLatency(60, 1000, 1).addTask(task1, task2).start();
+        measure.generateReport();
+        measure.plot();
     }
 
     public static class JavaHttpClient {
