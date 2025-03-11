@@ -12,12 +12,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 public class MeasureLatency {
 
-    private static final Logger LOGGER = Logger.getLogger(MeasureLatency.class);
+    private static final Logger log = Logger.getLogger(MeasureLatency.class);
+    private static final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
     private final List<Task> tasks = new ArrayList<>();
 
@@ -54,7 +55,11 @@ public class MeasureLatency {
 
     public MeasureLatency start() {
 
+        log.info("Starting the warm up phase");
+
         this.warmUp();
+
+        log.info("Starting the benchmark");
 
         Runnable wrapperTask = () -> {
             int i = 0;
@@ -79,14 +84,7 @@ public class MeasureLatency {
                     if (end - start > timeNs) {
                         break outer;
                     }
-                    if (MeasureLatencyType.GLOBAL.equals(this.latencyType)) {
-                        task.recordValue(end - intendedTime);
-                    } else if(MeasureLatencyType.INDIVIDUAL.equals(this.latencyType)) {
-                        task.recordValue(end - intendedTime - taskElapsed);
-                        taskElapsed = end - taskStarted;
-                    } else {
-                        throw new RuntimeException(this.latencyType + " not implemented");
-                    }
+                    taskElapsed = record(task, end, intendedTime, taskElapsed, taskStarted);
                 }
             }
         };
@@ -96,7 +94,33 @@ public class MeasureLatency {
                 executor.submit(wrapperTask);
             }
         } // The executor automatically shuts down here
+
+        log.info("Main executor finished");
+
+        try {
+            log.info("Waiting for record executor: " + recordExecutor.getQueue().size());
+            recordExecutor.shutdown();
+            recordExecutor.awaitTermination(1, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            log.warn("More than 1 hour waiting to record the values. Some values may be missing", e);
+        }
+
+        log.info("Record executor finished");
+
         return this;
+    }
+
+    private long record(Task task, long end, long intendedTime, long taskElapsed, long taskStarted) {
+        if (MeasureLatencyType.GLOBAL.equals(this.latencyType)) {
+            CompletableFuture.runAsync(() -> task.recordValue(end - intendedTime), recordExecutor);
+        } else if(MeasureLatencyType.INDIVIDUAL.equals(this.latencyType)) {
+            long finalTaskElapsed = taskElapsed;
+            CompletableFuture.runAsync(() -> task.recordValue(end - intendedTime - finalTaskElapsed), recordExecutor);
+            taskElapsed = end - taskStarted;
+        } else {
+            throw new RuntimeException(this.latencyType + " not implemented");
+        }
+        return taskElapsed;
     }
 
     public MeasureLatency generateReport() {
