@@ -120,7 +120,7 @@ public class MeasureLatency {
         }
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
-            Layout layout = Layout.builder().title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
+            Layout layout = Layout.builder().width(1700).height(800).title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
             Plot.show(new Figure(layout, traces.stream().toArray(Trace[]::new)));
         }
         return this;

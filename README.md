@@ -86,7 +86,7 @@ This example uses the [Quarkus Getting Started](https://github.com/quarkusio/qua
 
    This will execute a load test for 60 seconds with 1000 operations per second using 1 virtual thread, targeting the Quarkus application running at `http://localhost:8080`. It will measure GLOBAL latency and generate a report and plot.
 
-   You should see output in the console with latency metrics and an HTML file (`target/tablesaw/plots/`) will be generated containing the interactive latency plot.
+   You should see output in the console with latency metrics and an HTML file will be generated containing the interactive latency plot.
 
 #### `JavaHttpClientExample.java` Code Breakdown
 
@@ -123,8 +123,10 @@ public class JavaHttpClientExample {
 }
 ```
 
+##### Report example
+
+![Chart Example](doc/chart-example.png)
+
 ## Contributing
 
 [Contribution guidelines will be added here in the future.]
-
-
