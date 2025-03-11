@@ -16,17 +16,22 @@ public class MeasureLatency {
     private final int virtualThreads;
     private final long timeNs;
     private final long intervalNs;
+    private final long warmUpTimeSec;
 
-    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads) {
+    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
         if (opsPerSec <= 0) {
             throw new RuntimeException("opsPerSec must be greater than 0");
         }
+        if (warmUpTimeSec <= 0) {
+            throw new RuntimeException("warmUpTimeSec must be greater than 0");
+        }
         this.virtualThreads = virtualThreads;
         this.timeNs = TimeUnit.SECONDS.toNanos(timeSec);
         this.intervalNs = 1000000000 / opsPerSec;
+        this.warmUpTimeSec = warmUpTimeSec;
     }
 
     public MeasureLatency addTask(Task... tasks) {
@@ -42,6 +47,8 @@ public class MeasureLatency {
     }
 
     public MeasureLatency start(MeasureLatencyType type) {
+
+        this.warmUp();
 
         Runnable wrapperTask = () -> {
             int i = 0;
@@ -86,15 +93,42 @@ public class MeasureLatency {
         return this;
     }
 
-    public void generateReport() {
+    public MeasureLatency generateReport() {
         for (Task task : this.tasks) {
             task.report(this.intervalNs);
         }
+        return this;
     }
 
-    public void plot() {
+    public MeasureLatency plot() {
         for (Task task : this.tasks) {
             task.plot();
         }
+        return this;
+    }
+
+    private void warmUp() {
+        long warmUpTimeNs = TimeUnit.SECONDS.toNanos(this.warmUpTimeSec);
+        Runnable wrapperTask = () -> {
+            long start = System.nanoTime();
+            outer:
+            while (true) {
+                // request
+                for (int j = 0; j < this.tasks.size(); j++) {
+                    this.tasks.get(j).run();
+                    long end = System.nanoTime();
+                    // stop?
+                    if (end - start > warmUpTimeNs) {
+                        break outer;
+                    }
+                }
+            }
+        };
+
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < this.virtualThreads; i++) {
+                executor.submit(wrapperTask);
+            }
+        } // The executor automatically shuts down here
     }
 }

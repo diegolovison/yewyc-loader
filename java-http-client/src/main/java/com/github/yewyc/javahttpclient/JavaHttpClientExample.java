@@ -49,9 +49,8 @@ public class JavaHttpClientExample {
             }
         }, true);
 
-        MeasureLatency measure = new MeasureLatency(60, 1000, 1).addTask(task1, task2).start();
-        measure.generateReport();
-        measure.plot();
+        MeasureLatency measure = new MeasureLatency(60, 1000, 1, 5).addTask(task1, task2).start();
+        measure.generateReport().plot();
     }
 
     public static class JavaHttpClient {
