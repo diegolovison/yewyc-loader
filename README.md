@@ -127,6 +127,12 @@ public class JavaHttpClientExample {
 
 ![Chart Example](doc/chart-example.png)
 
+## Distributed
+For distributed test use `DistributedMeasureLatency`
+```bash
+-Djava.net.preferIPv4Stack=true -Djgroups.bind_addr=127.0.0.1
+```
+
 ## Contributing
 
 [Contribution guidelines will be added here in the future.]

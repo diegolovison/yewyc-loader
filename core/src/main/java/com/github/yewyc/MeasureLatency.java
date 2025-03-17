@@ -7,6 +7,7 @@ import tech.tablesaw.plotly.components.Grid;
 import tech.tablesaw.plotly.components.Layout;
 import tech.tablesaw.plotly.traces.Trace;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,16 +16,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public class MeasureLatency {
+public class MeasureLatency implements Closeable {
 
     private static final Logger log = Logger.getLogger(MeasureLatency.class);
     private static final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
-    private final List<Task> tasks = new ArrayList<>();
+    protected final List<Task> tasks = new ArrayList<>();
 
     private final int virtualThreads;
     private final long timeNs;
-    private final long intervalNs;
+    protected final long intervalNs;
     private final long warmUpTimeSec;
     private final MeasureLatencyType latencyType;
 
@@ -112,10 +113,10 @@ public class MeasureLatency {
 
     private long record(Task task, long end, long intendedTime, long taskElapsed, long taskStarted) {
         if (MeasureLatencyType.GLOBAL.equals(this.latencyType)) {
-            CompletableFuture.runAsync(() -> task.recordValue(end - intendedTime), recordExecutor);
+            CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime), recordExecutor);
         } else if(MeasureLatencyType.INDIVIDUAL.equals(this.latencyType)) {
             long finalTaskElapsed = taskElapsed;
-            CompletableFuture.runAsync(() -> task.recordValue(end - intendedTime - finalTaskElapsed), recordExecutor);
+            CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime - finalTaskElapsed), recordExecutor);
             taskElapsed = end - taskStarted;
         } else {
             throw new RuntimeException(this.latencyType + " not implemented");
@@ -140,6 +141,10 @@ public class MeasureLatency {
                 i += 1;
             }
         }
+        return this.plot(traces);
+    }
+
+    protected MeasureLatency plot(List<Trace> traces) {
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
             Layout layout = Layout.builder().width(1700).height(800).title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
@@ -171,5 +176,10 @@ public class MeasureLatency {
                 executor.submit(wrapperTask);
             }
         } // The executor automatically shuts down here
+    }
+
+    @Override
+    public void close() {
+
     }
 }
