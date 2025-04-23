@@ -20,6 +20,7 @@ public class Task implements Serializable {
     private transient final Runnable action;
     private final boolean trackData;
     private Histogram latencyHistogram;
+    private long blockedTime = 0;
 
     private List<Double> xData = new ArrayList<>();
     private List<Double> yData = new ArrayList<>();
@@ -60,6 +61,14 @@ public class Task implements Serializable {
         }
     }
 
+    /**
+     *
+     * @param value ns
+     */
+    public void addBlockedTime(long value) {
+        this.blockedTime += value;
+    }
+
     public void report(long intervalNs) {
         System.out.println("Task: " + this.getName());
         System.out.println("\t======= Latency =======");
@@ -77,6 +86,7 @@ public class Task implements Serializable {
         System.out.println("\tHistogram total requests: " + latencyHistogram.getTotalCount());
         System.out.println("\tDuration: " + ((this.getXData().getLast() - this.getXData().getFirst()) / 1_000_000_000.0) + " sec");
         System.out.println("\tMean: " + (latencyHistogram.getMean() / 1_000_000.0) + " ms");
+        System.out.println("\tBlocked time: " + (blockedTime / 1_000_000.0) + " ms");
         System.out.println("\tStd Dev: " + (latencyHistogram.getStdDeviation() / 1_000_000.0) + " ms");
         System.out.println("\tYou can " + ((latencyHistogram.getMean() < intervalNs) ? "increase" : "decrease") + " the opsPerSec by a factor of: " + String.format("%.2f", intervalNs / latencyHistogram.getMean()));
         System.out.println("\t---");

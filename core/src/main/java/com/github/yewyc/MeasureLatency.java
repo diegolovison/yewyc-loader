@@ -79,6 +79,9 @@ public class MeasureLatency implements Closeable {
                 long taskElapsed = 0;
                 for (int j = 0; j < this.tasks.size(); j++) {
                     Task task = this.tasks.get(j);
+                    if (j == 0) {
+                        task.addBlockedTime(taskStarted - intendedTime);
+                    }
                     task.run();
                     long end = System.nanoTime();
                     // stop?
