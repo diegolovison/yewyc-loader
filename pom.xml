@@ -12,6 +12,7 @@
     <module>core</module>
       <module>java-http-client</module>
       <module>okhttp-http-client</module>
+      <module>reactor-netty-http-client</module>
   </modules>
 
   <dependencies>
