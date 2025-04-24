@@ -41,7 +41,7 @@ public class MeasureLatency implements Closeable {
         }
         this.virtualThreads = virtualThreads;
         this.timeNs = TimeUnit.SECONDS.toNanos(timeSec);
-        this.intervalNs = 1000000000 / opsPerSec;
+        this.intervalNs = 1000000000 / (opsPerSec / virtualThreads);
         this.warmUpTimeSec = warmUpTimeSec;
         this.latencyType = latencyType;
     }
