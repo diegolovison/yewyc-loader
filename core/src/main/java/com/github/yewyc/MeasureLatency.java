@@ -8,6 +8,7 @@ import tech.tablesaw.plotly.components.Layout;
 import tech.tablesaw.plotly.traces.Trace;
 
 import java.io.Closeable;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -110,7 +111,8 @@ public class MeasureLatency implements Closeable {
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
             Layout layout = Layout.builder().width(1700).height(800).title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
-            Plot.show(new Figure(layout, traces.stream().toArray(Trace[]::new)));
+            Figure figure = new Figure(layout, traces.stream().toArray(Trace[]::new));
+            Plot.show(figure, new File("/tmp/html.html"));
         }
         return this;
     }
