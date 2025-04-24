@@ -1,4 +1,4 @@
-package com.github.yewyc.javahttpclient;
+package com.github.yewyc.okhttpclient;
 
 import com.github.yewyc.Task;
 import okhttp3.OkHttpClient;

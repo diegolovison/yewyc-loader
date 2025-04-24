@@ -1,4 +1,4 @@
-package com.github.yewyc.javahttpclient;
+package com.github.yewyc.okhttpclient;
 
 import com.github.yewyc.MeasureLatency;
 import com.github.yewyc.MeasureLatencyType;
