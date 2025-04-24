@@ -1,7 +1,6 @@
 package com.github.yewyc;
 
 import org.HdrHistogram.Histogram;
-import org.jboss.logging.Logger;
 import tech.tablesaw.plotly.traces.ScatterTrace;
 import tech.tablesaw.plotly.traces.Trace;
 
@@ -14,16 +13,13 @@ import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class Task implements Serializable {
 
-    private static final Logger LOGGER = Logger.getLogger(Task.class);
-
     private final String name;
     private transient final Runnable action;
     private final boolean trackData;
     private Histogram latencyHistogram;
-    private long blockedTime = 0;
-
-    private List<Double> xData = new ArrayList<>();
-    private List<Double> yData = new ArrayList<>();
+    private long blockedTime;
+    private List<Double> xData;
+    private List<Double> yData;
 
     public Task(String name, Runnable action) {
         this(name, action, false);
@@ -48,7 +44,10 @@ public class Task implements Serializable {
     }
 
     public void configure(long timeNs) {
+        this.blockedTime = 0;
         this.latencyHistogram = new Histogram(timeNs, 2);
+        this.xData = new ArrayList<>();
+        this.yData = new ArrayList<>();
     }
 
     public void recordValue(long when, long value) {
