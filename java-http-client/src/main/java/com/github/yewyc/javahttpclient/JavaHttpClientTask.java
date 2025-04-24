@@ -16,7 +16,10 @@ public class JavaHttpClientTask {
 
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
 
-    protected static Task createTask1(JavaHttpClient client) {
+    protected static Task createTask1() {
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/hello"))
                 .GET()
@@ -33,7 +36,10 @@ public class JavaHttpClientTask {
         }, true);
     }
 
-    protected static Task createTask2(JavaHttpClient client) {
+    protected static Task createTask2() {
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
                 .GET()
@@ -48,19 +54,5 @@ public class JavaHttpClientTask {
                 LOGGER.error(e);
             }
         }, true);
-    }
-
-    protected static class JavaHttpClient {
-        private final HttpClient client;
-        public JavaHttpClient() {
-            this.client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build();
-        }
-
-        public HttpResponse<String> send(HttpRequest request, HttpResponse.BodyHandler<String> handler) throws IOException, InterruptedException {
-            HttpResponse<String> response = client.send(request, handler);
-            return response;
-        }
     }
 }

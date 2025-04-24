@@ -7,8 +7,6 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>java-http-client</artifactId>
-    <name>Archetype - java-http-client</name>
-    <url>http://maven.apache.org</url>
 
     <dependencies>
         <dependency>
