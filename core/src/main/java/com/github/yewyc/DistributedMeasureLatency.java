@@ -77,20 +77,22 @@ public class DistributedMeasureLatency extends MeasureLatency {
             if (this.isCoordinator()) {
                 log.info("Collecting generate report messages");
                 this.reportCountDownLatch.await();
-                this.remoteTasks.add(new RemoteTask(this.channel.getAddress(), this.tasks));
+                this.remoteTasks.add(new RemoteTask(this.channel.getAddress(), this.weightTasks));
                 for (RemoteTask remoteTask : this.remoteTasks) {
                     System.out.println("--------------------------------");
                     System.out.println("Node: " + remoteTask.getSource());
                     System.out.println("--------------------------------");
-                    for (Task task : remoteTask.getTasks()) {
-                        task.report(this.intervalNs);
+                    for (WeightTask weightTask : this.weightTasks) {
+                        for (Task task : weightTask.getTasks()) {
+                            task.report(this.intervalNs);
+                        }
                     }
                     System.out.println();
                     System.out.println();
                 }
                 this.gatheredReportData = true;
             } else {
-                this.channel.send(new ObjectMessage(null, this.tasks));
+                this.channel.send(new ObjectMessage(null, this.weightTasks));
                 log.info("Generate report message sent to the coordinator");
             }
         } catch (Exception e) {
@@ -111,16 +113,18 @@ public class DistributedMeasureLatency extends MeasureLatency {
             Map<String, List<Double>> yMap = new HashMap<>();
             // TODO the data must be sorted by X before ploting
             for (RemoteTask remoteTask : this.remoteTasks) {
-                for (Task task : remoteTask.getTasks()) {
-                    if (xMap.containsKey(task.getName())) {
-                        List<Double> localXMap = xMap.get(task.getName());
-                        List<Double> localYMap = yMap.get(task.getName());
-                        localXMap.addAll(new ArrayList<>(task.getXData()));
-                        localYMap.addAll(new ArrayList<>(task.getYData()));
-                    } else {
-                        names.add(task.getName());
-                        xMap.put(task.getName(), new ArrayList<>(task.getXData()));
-                        yMap.put(task.getName(), new ArrayList<>(task.getYData()));
+                for (WeightTask weightTask : this.weightTasks) {
+                    for (Task task : weightTask.getTasks()) {
+                        if (xMap.containsKey(task.getName())) {
+                            List<Double> localXMap = xMap.get(task.getName());
+                            List<Double> localYMap = yMap.get(task.getName());
+                            localXMap.addAll(new ArrayList<>(task.getXData()));
+                            localYMap.addAll(new ArrayList<>(task.getYData()));
+                        } else {
+                            names.add(task.getName());
+                            xMap.put(task.getName(), new ArrayList<>(task.getXData()));
+                            yMap.put(task.getName(), new ArrayList<>(task.getYData()));
+                        }
                     }
                 }
             }
@@ -199,8 +203,8 @@ public class DistributedMeasureLatency extends MeasureLatency {
 
         @Override
         public void receive(Message msg) {
-            List<Task> tasks = msg.getObject();
-            this.remoteTasks.add(new RemoteTask(msg.getSrc(), tasks));
+            List<WeightTask> weightTasks = msg.getObject();
+            this.remoteTasks.add(new RemoteTask(msg.getSrc(), weightTasks));
             this.reportCountDownLatch.countDown();
         }
     }

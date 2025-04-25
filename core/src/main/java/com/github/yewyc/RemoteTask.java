@@ -7,18 +7,18 @@ import java.util.List;
 public class RemoteTask {
 
     private final Address source;
-    private final List<Task> tasks;
+    private final List<WeightTask> weightTasks;
 
-    public RemoteTask(Address source, List<Task> tasks) {
+    public RemoteTask(Address source, List<WeightTask> weightTasks) {
         this.source = source;
-        this.tasks = tasks;
+        this.weightTasks = weightTasks;
     }
 
     public Address getSource() {
         return source;
     }
 
-    public List<Task> getTasks() {
-        return tasks;
+    public List<WeightTask> getWeightTasks() {
+        return weightTasks;
     }
 }

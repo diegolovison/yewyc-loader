@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +21,7 @@ public class MeasureLatency implements Closeable {
 
     private static final Logger log = Logger.getLogger(MeasureLatency.class);
 
-    protected final List<Task> tasks = new ArrayList<>();
+    protected final List<WeightTask> weightTasks = new ArrayList<>();
 
     private final int virtualThreads;
     private final long timeSec;
@@ -46,30 +47,48 @@ public class MeasureLatency implements Closeable {
     }
 
     public MeasureLatency addTask(Task... tasks) {
-        this.tasks.addAll(Arrays.asList(tasks));
+        if (this.weightTasks.isEmpty()) {
+            this.weightTasks.add(new WeightTask(Arrays.asList(tasks), 1.0));
+        } else if (this.weightTasks.size() == 1) {
+            this.weightTasks.getFirst().getTasks().addAll(Arrays.asList(tasks));
+        } else {
+            throw new IllegalStateException("You cannot mix weightTasks with task");
+        }
+        return this;
+    }
+
+    public MeasureLatency addWeightTask(List<WeightTask> weightTasks) {
+        this.weightTasks.addAll(weightTasks);
         return this;
     }
 
     public MeasureLatency start() {
+        double[] probabilities = this.weightTasks.stream()
+                .mapToDouble(WeightTask::getProbability)
+                .toArray();
+        double sum = Arrays.stream(probabilities).sum();
+        if (sum > 1.0) {
+            throw new IllegalStateException("The sum of the probabilities cannot be greater than 1.0");
+        }
         log.info("Starting the warm up phase");
-        run(TimeUnit.SECONDS.toNanos(warmUpTimeSec));
+        run(TimeUnit.SECONDS.toNanos(warmUpTimeSec), probabilities);
         log.info("Starting the benchmark");
-        run(TimeUnit.SECONDS.toNanos(timeSec));
+        run(TimeUnit.SECONDS.toNanos(timeSec), probabilities);
         return this;
     }
 
-    private MeasureLatency run(long durationNs) {
+    private MeasureLatency run(long durationNs, double[] probabilities) {
 
-        for (Task task : this.tasks) {
-            task.configure(durationNs);
+        for (WeightTask weightTask : this.weightTasks) {
+            for (Task task : weightTask.getTasks()) {
+                task.configure(durationNs);
+            }
         }
 
         final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            for (int i = 0; i < this.virtualThreads; i++) {
-                executor.submit(new RunnableTask(intervalNs, tasks, durationNs, latencyType, recordExecutor));
-            }
+            distributeTasks(durationNs, executor, recordExecutor, probabilities);
         } // The executor automatically shuts down here
 
         log.info("Main executor finished");
@@ -87,21 +106,40 @@ public class MeasureLatency implements Closeable {
         return this;
     }
 
+    private void distributeTasks(long durationNs, ExecutorService executor, ThreadPoolExecutor recordExecutor, double[] probabilities) {
+
+        for (int i = 0; i < this.virtualThreads; i++) {
+            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, latencyType, recordExecutor, probabilities));
+        }
+    }
+
     public MeasureLatency generateReport() {
-        for (Task task : this.tasks) {
-            task.report(this.intervalNs);
+        List<Task> reported = new ArrayList<>();
+        for (WeightTask weightTask : this.weightTasks) {
+            for (Task task : weightTask.getTasks()) {
+                if (!reported.contains(task)) {
+                    task.report(this.intervalNs);
+                    reported.add(task);
+                }
+            }
         }
         return this;
     }
 
     public MeasureLatency plot() {
+        List<Task> reported = new ArrayList<>();
         List<Trace> traces = new ArrayList<>();
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
-        for (Task task : this.tasks) {
-            if (task.hasTrackData()) {
-                traces.add(task.plot(i));
-                i += 1;
+        for (WeightTask weightTask : this.weightTasks) {
+            for (Task task : weightTask.getTasks()) {
+                if (task.hasTrackData()) {
+                    if (!reported.contains(task)) {
+                        traces.add(task.plot(i));
+                        i += 1;
+                        reported.add(task);
+                    }
+                }
             }
         }
         return this.plot(traces);
