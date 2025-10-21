@@ -14,24 +14,30 @@
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
-            <version>3.6.1.Final</version>
+            <version>${jboss-logging.version}</version>
         </dependency>
 
         <dependency>
             <groupId>tech.tablesaw</groupId>
             <artifactId>tablesaw-core</artifactId>
-            <version>0.44.1</version>
+            <version>${tablesaw-core.version}</version>
         </dependency>
         <dependency>
             <groupId>tech.tablesaw</groupId>
             <artifactId>tablesaw-jsplot</artifactId>
-            <version>0.44.1</version>
+            <version>${tablesaw-core.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups</artifactId>
-            <version>5.4.4.Final</version>
+            <version>${jgroups.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+            <version>${HdrHistogram.version}</version>
         </dependency>
     </dependencies>
 
