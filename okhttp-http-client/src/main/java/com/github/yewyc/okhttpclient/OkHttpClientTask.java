@@ -27,6 +27,6 @@ public class OkHttpClientTask {
             } catch (IOException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 }

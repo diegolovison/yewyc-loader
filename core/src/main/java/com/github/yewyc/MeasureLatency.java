@@ -79,12 +79,6 @@ public class MeasureLatency implements Closeable {
 
     private MeasureLatency run(long durationNs, double[] probabilities) {
 
-        for (WeightTask weightTask : this.weightTasks) {
-            for (Task task : weightTask.getTasks()) {
-                task.configure(durationNs);
-            }
-        }
-
         final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
@@ -133,12 +127,11 @@ public class MeasureLatency implements Closeable {
         int i = 1;
         for (WeightTask weightTask : this.weightTasks) {
             for (Task task : weightTask.getTasks()) {
-                if (task.hasTrackData()) {
-                    if (!reported.contains(task)) {
-                        traces.add(task.plot(i));
-                        i += 1;
-                        reported.add(task);
-                    }
+                if (!reported.contains(task)) {
+                    PlotData plotData = task.plot(i);
+                    traces.add(plotData.trace);
+                    i += 1;
+                    reported.add(task);
                 }
             }
         }

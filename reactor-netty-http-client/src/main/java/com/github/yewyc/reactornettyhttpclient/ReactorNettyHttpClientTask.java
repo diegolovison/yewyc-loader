@@ -12,6 +12,6 @@ public class ReactorNettyHttpClientTask {
                     .uri("http://localhost:8080/hello")
                     .response()
                     .block();
-        }, true);
+        });
     }
 }

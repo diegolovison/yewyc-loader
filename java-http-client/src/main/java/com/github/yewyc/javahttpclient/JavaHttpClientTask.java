@@ -33,7 +33,7 @@ public class JavaHttpClientTask {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     protected static Task createTask2() {
@@ -53,6 +53,6 @@ public class JavaHttpClientTask {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 }

@@ -195,7 +195,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task unregister() {
@@ -215,7 +215,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task viewUser() {
@@ -235,7 +235,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task updateUser() {
@@ -255,7 +255,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task logout() {
@@ -275,7 +275,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task addVehicle() {
@@ -295,7 +295,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task deleteVehicle() {
@@ -315,7 +315,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task viewQuote() {
@@ -335,7 +335,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task acceptQuote() {
@@ -355,7 +355,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task viewVehicle() {
@@ -375,7 +375,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task acceptQuoteWebSocket() {
@@ -395,7 +395,7 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 
     public Task viewInsurance() {
@@ -415,6 +415,6 @@ public class CumulativeDistributionPerfTest {
             } catch (IOException | InterruptedException e) {
                 LOGGER.error(e);
             }
-        }, true);
+        });
     }
 }

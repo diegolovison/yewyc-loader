@@ -7,10 +7,7 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.plotly.traces.ScatterTrace;
 import tech.tablesaw.plotly.traces.Trace;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -115,15 +112,16 @@ public class DistributedMeasureLatency extends MeasureLatency {
             for (RemoteTask remoteTask : this.remoteTasks) {
                 for (WeightTask weightTask : this.weightTasks) {
                     for (Task task : weightTask.getTasks()) {
+                        PlotData plotData = task.plot(0);
                         if (xMap.containsKey(task.getName())) {
                             List<Double> localXMap = xMap.get(task.getName());
                             List<Double> localYMap = yMap.get(task.getName());
-                            localXMap.addAll(new ArrayList<>(task.getXData()));
-                            localYMap.addAll(new ArrayList<>(task.getYData()));
+                            localXMap.addAll(Arrays.asList(plotData.xData));
+                            localYMap.addAll(Arrays.asList(plotData.yData));
                         } else {
                             names.add(task.getName());
-                            xMap.put(task.getName(), new ArrayList<>(task.getXData()));
-                            yMap.put(task.getName(), new ArrayList<>(task.getYData()));
+                            xMap.put(task.getName(), Arrays.asList(plotData.xData));
+                            yMap.put(task.getName(), Arrays.asList(plotData.yData));
                         }
                     }
                 }
