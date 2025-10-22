@@ -24,8 +24,8 @@ public class DistributedMeasureLatency extends MeasureLatency {
     private final List<RemoteTask> remoteTasks = new ArrayList<>();
     private boolean gatheredReportData = false;
 
-    public DistributedMeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, MeasureLatencyType latencyType, int expectedNumberOfNodes) {
-        super(timeSec, opsPerSec, virtualThreads, warmUpTimeSec, latencyType);
+    public DistributedMeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, int expectedNumberOfNodes) {
+        super(timeSec, opsPerSec, virtualThreads, warmUpTimeSec);
         this.expectedNumberOfNodes = expectedNumberOfNodes;
         this.reportCountDownLatch = new CountDownLatch(this.expectedNumberOfNodes - 1);
 

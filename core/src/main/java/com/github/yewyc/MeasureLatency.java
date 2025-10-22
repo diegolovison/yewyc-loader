@@ -27,9 +27,8 @@ public class MeasureLatency implements Closeable {
     private final long timeSec;
     protected final long intervalNs;
     private final long warmUpTimeSec;
-    private final MeasureLatencyType latencyType;
 
-    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, MeasureLatencyType latencyType) {
+    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -43,7 +42,6 @@ public class MeasureLatency implements Closeable {
         this.timeSec = timeSec;
         this.intervalNs = 1000000000 / (opsPerSec / virtualThreads);
         this.warmUpTimeSec = warmUpTimeSec;
-        this.latencyType = latencyType;
     }
 
     public MeasureLatency addTask(Task... tasks) {
@@ -103,7 +101,7 @@ public class MeasureLatency implements Closeable {
     private void distributeTasks(long durationNs, ExecutorService executor, ThreadPoolExecutor recordExecutor, double[] probabilities) {
 
         for (int i = 0; i < this.virtualThreads; i++) {
-            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, latencyType, recordExecutor, probabilities));
+            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, recordExecutor, probabilities));
         }
     }
 
@@ -141,7 +139,7 @@ public class MeasureLatency implements Closeable {
     protected MeasureLatency plot(List<Trace> traces) {
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
-            Layout layout = Layout.builder().width(1700).height(800).title("Latency(ms) - LatencyType::" + this.latencyType.toString()).grid(grid).build();
+            Layout layout = Layout.builder().width(1700).height(800).title("Latency report on milli second").grid(grid).build();
             Figure figure = new Figure(layout, traces.stream().toArray(Trace[]::new));
             Plot.show(figure, new File("/tmp/html.html"));
         }

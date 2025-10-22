@@ -12,15 +12,13 @@ public class RunnableTask implements Runnable {
     private final long intervalNs;
     private final List<WeightTask> weightTasks;
     private final long timeNs;
-    private final MeasureLatencyType latencyType;
     private final ThreadPoolExecutor recordExecutor;
     private final double[] probabilities;
 
-    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long timeNs, MeasureLatencyType latencyType, ThreadPoolExecutor recordExecutor, double[] probabilities) {
+    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long timeNs, ThreadPoolExecutor recordExecutor, double[] probabilities) {
         this.intervalNs = intervalNs;
         this.weightTasks = weightTasks;
         this.timeNs = timeNs;
-        this.latencyType = latencyType;
         this.recordExecutor = recordExecutor;
         this.probabilities = probabilities;
     }
@@ -70,15 +68,9 @@ public class RunnableTask implements Runnable {
     }
 
     private long record(Task task, long end, long intendedTime, long taskElapsed, long taskStarted) {
-        if (MeasureLatencyType.GLOBAL.equals(this.latencyType)) {
-            CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime), recordExecutor);
-        } else if(MeasureLatencyType.INDIVIDUAL.equals(this.latencyType)) {
-            long finalTaskElapsed = taskElapsed;
-            CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime - finalTaskElapsed), recordExecutor);
-            taskElapsed = end - taskStarted;
-        } else {
-            throw new RuntimeException(this.latencyType + " not implemented");
-        }
+        long finalTaskElapsed = taskElapsed;
+        CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime - finalTaskElapsed), recordExecutor);
+        taskElapsed = end - taskStarted;
         return taskElapsed;
     }
 }

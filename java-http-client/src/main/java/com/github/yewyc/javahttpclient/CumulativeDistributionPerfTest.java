@@ -1,7 +1,6 @@
 package com.github.yewyc.javahttpclient;
 
 import com.github.yewyc.MeasureLatency;
-import com.github.yewyc.MeasureLatencyType;
 import com.github.yewyc.Task;
 import com.github.yewyc.WeightTask;
 import org.jboss.logging.Logger;
@@ -24,7 +23,7 @@ public class CumulativeDistributionPerfTest {
 
         CumulativeDistributionPerfTest test = new CumulativeDistributionPerfTest();
 
-        try (MeasureLatency measure = new MeasureLatency(60, 100, 1, 60, MeasureLatencyType.GLOBAL)
+        try (MeasureLatency measure = new MeasureLatency(60, 100, 1, 60)
                 .addWeightTask(test.getWeightTasks()).start()) {
             measure.generateReport().plot();
         }
