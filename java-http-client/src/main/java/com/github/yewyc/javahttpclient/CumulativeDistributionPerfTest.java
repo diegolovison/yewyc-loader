@@ -23,9 +23,12 @@ public class CumulativeDistributionPerfTest {
 
         CumulativeDistributionPerfTest test = new CumulativeDistributionPerfTest();
 
-        try (MeasureLatency measure = new MeasureLatency(60, 100, 1, 60)
-                .addWeightTask(test.getWeightTasks()).start()) {
-            measure.generateReport().plot();
+        try (MeasureLatency measure = new MeasureLatency(60, 100, 1, 60)) {
+            measure
+                    .addWeightTask(test.getWeightTasks())
+                    .start()
+                    .generateReport()
+                    .plot();
         }
     }
 
