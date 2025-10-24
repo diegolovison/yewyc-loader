@@ -2,6 +2,7 @@ package com.github.yewyc.javahttpclient;
 
 import com.github.yewyc.MeasureLatency;
 import com.github.yewyc.Task;
+import com.github.yewyc.TaskStatus;
 import com.github.yewyc.WeightTask;
 import org.jboss.logging.Logger;
 
@@ -13,7 +14,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 
-import static com.github.yewyc.TheBlackhole.consume;
 
 public class CumulativeDistributionPerfTest {
 
@@ -190,13 +190,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("login", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -210,13 +215,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("unregister", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -230,13 +240,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("viewUser", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -250,13 +265,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("updateUser", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -270,13 +290,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("logout", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -290,13 +315,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("addVehicle", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -310,13 +340,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("deleteVehicle", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -330,13 +365,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("viewQuote", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -350,13 +390,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("acceptQuote", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -370,13 +415,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("viewVehicle", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -390,13 +440,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("acceptQuoteWebSocket", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -410,13 +465,18 @@ public class CumulativeDistributionPerfTest {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("viewInsurance", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 }

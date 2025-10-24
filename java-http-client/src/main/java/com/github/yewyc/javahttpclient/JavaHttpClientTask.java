@@ -1,6 +1,7 @@
 package com.github.yewyc.javahttpclient;
 
 import com.github.yewyc.Task;
+import com.github.yewyc.TaskStatus;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -9,8 +10,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-
-import static com.github.yewyc.TheBlackhole.consume;
 
 public class JavaHttpClientTask {
 
@@ -26,13 +25,18 @@ public class JavaHttpClientTask {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("http-request-hello", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 
@@ -46,13 +50,18 @@ public class JavaHttpClientTask {
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
         return new Task("http-request-my-name", () -> {
+            TaskStatus localStatus;
             try {
                 HttpResponse<String> response = client.send(request, handler);
-                consume(response.statusCode());
-                consume(response.body());
+                if (response.statusCode() == 200) {
+                    localStatus = TaskStatus.SUCCESS;
+                } else {
+                    localStatus = TaskStatus.FAILED;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 }

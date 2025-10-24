@@ -1,14 +1,13 @@
 package com.github.yewyc.okhttpclient;
 
 import com.github.yewyc.Task;
+import com.github.yewyc.TaskStatus;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
-
-import static com.github.yewyc.TheBlackhole.consume;
 
 public class OkHttpClientTask {
 
@@ -20,13 +19,19 @@ public class OkHttpClientTask {
                 .url("http://localhost:8080/hello")
                 .build();
         return new Task("http-request-hello", () -> {
-            try (Response response = client.newCall(request).execute()) {
-
-                consume(response.isSuccessful());
-                consume(response.body());
+            TaskStatus localStatus;
+            try {
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        localStatus = TaskStatus.SUCCESS;
+                    } else {
+                        localStatus = TaskStatus.FAILED;
+                    }
+                }
             } catch (IOException e) {
-                LOGGER.error(e);
+                localStatus = TaskStatus.FAILED;
             }
+            return localStatus;
         });
     }
 }

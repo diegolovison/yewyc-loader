@@ -7,6 +7,7 @@ import tech.tablesaw.plotly.traces.ScatterTrace;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -19,14 +20,14 @@ public class Task implements Serializable {
     private static final long NANOS_PER_SECOND = 1_000_000_000L;
     private static final long NANO_PER_MS = 1_000_000;
     private final String name;
-    private transient final Runnable action;
+    private transient final Callable<TaskStatus> action;
     private Recorder recorder;
     private long blockedTime;
     private List<Histogram> histograms;
     private long firstRecorderData = 0;
     private long lastRecordData = 0;
 
-    public Task(String name, Runnable action) {
+    public Task(String name, Callable<TaskStatus> action) {
         this.name = name;
         this.action = action;
         // 1. Initialize a Recorder
@@ -42,8 +43,12 @@ public class Task implements Serializable {
         return this.name;
     }
 
-    public void run() {
-        this.action.run();
+    public TaskStatus run() {
+        try {
+            return this.action.call();
+        } catch (Exception e) {
+            return TaskStatus.FAILED;
+        }
     }
 
     /**
