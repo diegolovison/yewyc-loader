@@ -10,14 +10,21 @@ public class RunnableTask implements Runnable {
 
     private final long intervalNs;
     private final List<WeightTask> weightTasks;
-    private final long timeNs;
+    private final long totalDurationNs;
     private final double[] probabilities;
+    private final long warmUpDurationNs;
+    private final long steadyStateDurationNs;
+    private final boolean recordWarmUp;
 
-    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long timeNs, double[] probabilities) {
+    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long warmUpDurationNs,
+                        long steadyStateDurationNs, double[] probabilities, boolean recordWarmUp) {
         this.intervalNs = intervalNs;
         this.weightTasks = weightTasks;
-        this.timeNs = timeNs;
+        this.warmUpDurationNs = warmUpDurationNs;
+        this.steadyStateDurationNs = steadyStateDurationNs;
+        this.totalDurationNs = this.warmUpDurationNs +  this.steadyStateDurationNs;
         this.probabilities = probabilities;
+        this.recordWarmUp = recordWarmUp;
     }
 
     @Override
@@ -28,17 +35,18 @@ public class RunnableTask implements Runnable {
         while (true) {
 
             // when start
-            long intendedTime = start + (i++) * intervalNs;
+            long intendedTime = start + (i++) * this.intervalNs;
             long now;
             while ((now = System.nanoTime()) < intendedTime)
                 LockSupport.parkNanos(intendedTime - now);
 
             // request
             long taskStarted = System.nanoTime();
+            boolean isWarmUpPhase = taskStarted < this.warmUpDurationNs;
 
             Task task;
             if (this.weightTasks.size() > 1) {
-                int prob = cdfChoice(probabilities);
+                int prob = cdfChoice(this.probabilities);
                 task = this.weightTasks.get(prob).getTask();
             } else {
                 task = this.weightTasks.get(0).getTask();
@@ -49,10 +57,16 @@ public class RunnableTask implements Runnable {
 
             long end = System.nanoTime();
 
-            task.recordValue(end, end - intendedTime, taskStatus);
+            if (isWarmUpPhase) {
+                if (this.recordWarmUp) {
+                    task.recordValue(end, end - intendedTime, taskStatus);
+                }
+            } else {
+                task.recordValue(end, end - intendedTime, taskStatus);
+            }
 
             // stop?
-            if (end - start > timeNs) {
+            if (end - start > totalDurationNs) {
                 break;
             }
         }

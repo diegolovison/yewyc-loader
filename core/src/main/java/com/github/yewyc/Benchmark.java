@@ -12,9 +12,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class Benchmark implements Closeable {
@@ -27,8 +24,13 @@ public class Benchmark implements Closeable {
     private final long timeSec;
     protected final long intervalNs;
     private final long warmUpTimeSec;
+    private boolean recordWarmUp;
 
     public Benchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
+        this(timeSec, opsPerSec, virtualThreads, warmUpTimeSec, false);
+    }
+
+    public Benchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, boolean recordWarmUp) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -42,6 +44,7 @@ public class Benchmark implements Closeable {
         this.timeSec = timeSec;
         this.intervalNs = 1000000000 / (opsPerSec / virtualThreads);
         this.warmUpTimeSec = warmUpTimeSec;
+        this.recordWarmUp = recordWarmUp;
     }
 
     public Benchmark addTask(WeightTask... tasks) {
@@ -64,27 +67,24 @@ public class Benchmark implements Closeable {
         if (sum > 1.0) {
             throw new IllegalStateException("The sum of the probabilities cannot be greater than 1.0");
         }
+
         log.info("Starting the benchmark");
-        run(TimeUnit.SECONDS.toNanos(warmUpTimeSec) + TimeUnit.SECONDS.toNanos(timeSec), probabilities);
-        return this;
-    }
-
-    private Benchmark run(long durationNs, double[] probabilities) {
-
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            distributeTasks(durationNs, executor, probabilities);
+            for (int i = 0; i < this.virtualThreads; i++) {
+                executor.submit(
+                        new RunnableTask(
+                                intervalNs,
+                                this.weightTasks,
+                                TimeUnit.SECONDS.toNanos(warmUpTimeSec),
+                                TimeUnit.SECONDS.toNanos(timeSec),
+                                probabilities,
+                                this.recordWarmUp
+                        )
+                );
+            }
         } // The executor automatically shuts down here
-
-        log.info("Main executor finished");
-
+        log.info("Benchmark finished");
         return this;
-    }
-
-    private void distributeTasks(long durationNs, ExecutorService executor, double[] probabilities) {
-
-        for (int i = 0; i < this.virtualThreads; i++) {
-            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, probabilities));
-        }
     }
 
     public Benchmark generateReport() {
@@ -119,6 +119,5 @@ public class Benchmark implements Closeable {
 
     @Override
     public void close() {
-
     }
 }
