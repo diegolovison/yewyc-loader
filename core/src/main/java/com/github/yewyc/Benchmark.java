@@ -17,9 +17,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class MeasureLatency implements Closeable {
+public class Benchmark implements Closeable {
 
-    private static final Logger log = Logger.getLogger(MeasureLatency.class);
+    private static final Logger log = Logger.getLogger(Benchmark.class);
 
     protected final List<WeightTask> weightTasks = new ArrayList<>();
 
@@ -28,7 +28,7 @@ public class MeasureLatency implements Closeable {
     protected final long intervalNs;
     private final long warmUpTimeSec;
 
-    public MeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
+    public Benchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -44,19 +44,19 @@ public class MeasureLatency implements Closeable {
         this.warmUpTimeSec = warmUpTimeSec;
     }
 
-    public MeasureLatency addTask(WeightTask... tasks) {
+    public Benchmark addTask(WeightTask... tasks) {
         for (WeightTask task : tasks) {
             this.weightTasks.add(task);
         }
         return this;
     }
 
-    public MeasureLatency addWeightTask(List<WeightTask> weightTasks) {
+    public Benchmark addWeightTask(List<WeightTask> weightTasks) {
         this.weightTasks.addAll(weightTasks);
         return this;
     }
 
-    public MeasureLatency start() {
+    public Benchmark start() {
         double[] probabilities = this.weightTasks.stream()
                 .mapToDouble(WeightTask::getProbability)
                 .toArray();
@@ -71,7 +71,7 @@ public class MeasureLatency implements Closeable {
         return this;
     }
 
-    private MeasureLatency run(long durationNs, double[] probabilities) {
+    private Benchmark run(long durationNs, double[] probabilities) {
 
         final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
@@ -101,14 +101,14 @@ public class MeasureLatency implements Closeable {
         }
     }
 
-    public MeasureLatency generateReport() {
+    public Benchmark generateReport() {
         for (WeightTask weightTask : this.weightTasks) {
             weightTask.getTask().report(this.intervalNs);
         }
         return this;
     }
 
-    public MeasureLatency plot() {
+    public Benchmark plot() {
         List<Trace> traces = new ArrayList<>();
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
@@ -121,7 +121,7 @@ public class MeasureLatency implements Closeable {
         return this.plot(traces);
     }
 
-    protected MeasureLatency plot(List<Trace> traces) {
+    protected Benchmark plot(List<Trace> traces) {
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
             Layout layout = Layout.builder().width(1700).height(800).title("Latency report on milli second").grid(grid).build();

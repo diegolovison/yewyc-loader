@@ -13,9 +13,9 @@ import java.util.concurrent.TimeUnit;
 
 import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
-public class DistributedMeasureLatency extends MeasureLatency {
+public class DistributedBenchmark extends Benchmark {
 
-    private static final Logger log = Logger.getLogger(DistributedMeasureLatency.class);
+    private static final Logger log = Logger.getLogger(DistributedBenchmark.class);
 
     private final JChannel channel;
     private final int expectedNumberOfNodes;
@@ -24,7 +24,7 @@ public class DistributedMeasureLatency extends MeasureLatency {
     private final List<RemoteTask> remoteTasks = new ArrayList<>();
     private boolean gatheredReportData = false;
 
-    public DistributedMeasureLatency(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, int expectedNumberOfNodes) {
+    public DistributedBenchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, int expectedNumberOfNodes) {
         super(timeSec, opsPerSec, virtualThreads, warmUpTimeSec);
         this.expectedNumberOfNodes = expectedNumberOfNodes;
         this.reportCountDownLatch = new CountDownLatch(this.expectedNumberOfNodes - 1);
@@ -44,7 +44,7 @@ public class DistributedMeasureLatency extends MeasureLatency {
     }
 
     @Override
-    public MeasureLatency start() {
+    public Benchmark start() {
 
         try {
             try {
@@ -69,7 +69,7 @@ public class DistributedMeasureLatency extends MeasureLatency {
     }
 
     @Override
-    public MeasureLatency generateReport() {
+    public Benchmark generateReport() {
         try {
             if (this.isCoordinator()) {
                 log.info("Collecting generate report messages");
@@ -97,7 +97,7 @@ public class DistributedMeasureLatency extends MeasureLatency {
     }
 
     @Override
-    public MeasureLatency plot() {
+    public Benchmark plot() {
         if (this.isCoordinator()) {
             // the method will block until all data is collected
             if (!this.gatheredReportData) {
