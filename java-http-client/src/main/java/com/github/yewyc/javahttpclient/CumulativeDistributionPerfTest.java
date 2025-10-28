@@ -42,8 +42,8 @@ public class CumulativeDistributionPerfTest {
 
         CumulativeDistributionPerfTest test = new CumulativeDistributionPerfTest();
 
-        try (Benchmark measure = new Benchmark(60, 100, 1, 60)) {
-            measure
+        try (Benchmark benchmark = new Benchmark(60, 100, 1, 60)) {
+            benchmark
                     .addWeightTask(test.getWeightTasks())
                     .start()
                     .generateReport()

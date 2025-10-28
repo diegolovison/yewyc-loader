@@ -7,8 +7,8 @@ import com.github.yewyc.WeightTask;
 public class JavaHttpClientDistributedPerfTest extends JavaHttpClientPerfComplexTest {
 
     public static void main(String[] args) {
-        try (Benchmark measure = new DistributedBenchmark(10, 10, 1, 5, 2)) {
-            measure
+        try (Benchmark benchmark = new DistributedBenchmark(10, 10, 1, 5, 2)) {
+            benchmark
                     .addTask(new WeightTask(task1(), 0.5), new WeightTask(task2(), 0.5))
                     .start()
                     .generateReport()
