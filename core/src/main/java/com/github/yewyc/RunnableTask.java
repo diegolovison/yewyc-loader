@@ -28,11 +28,6 @@ public class RunnableTask implements Runnable {
         int i = 0;
         long start = System.nanoTime();
 
-        List<Task> tasks = null;
-        if (this.weightTasks.size() == 1) {
-            tasks = this.weightTasks.getFirst().getTasks();
-        }
-
         outer:
         while (true) {
 
@@ -46,24 +41,24 @@ public class RunnableTask implements Runnable {
             long taskStarted = System.nanoTime();
             long taskElapsed = 0;
 
+            Task task;
             if (this.weightTasks.size() > 1) {
                 int prob = cdfChoice(probabilities);
-                tasks = this.weightTasks.get(prob).getTasks();
+                task = this.weightTasks.get(prob).getTask();
+            } else {
+                task = this.weightTasks.get(0).getTask();
             }
 
-            for (int j = 0; j < tasks.size(); j++) {
-                Task task = tasks.get(j);
-                if (j == 0) {
-                    task.addBlockedTime(taskStarted - intendedTime);
-                }
-                task.run();
-                long end = System.nanoTime();
-                // stop?
-                if (end - start > timeNs) {
-                    break outer;
-                }
-                taskElapsed = record(task, end, intendedTime, taskElapsed, taskStarted);
+
+            task.addBlockedTime(taskStarted - intendedTime);
+            task.run();
+
+            long end = System.nanoTime();
+            // stop?
+            if (end - start > timeNs) {
+                break outer;
             }
+            taskElapsed = record(task, end, intendedTime, taskElapsed, taskStarted);
         }
     }
 

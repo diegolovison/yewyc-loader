@@ -80,9 +80,7 @@ public class DistributedMeasureLatency extends MeasureLatency {
                     System.out.println("Node: " + remoteTask.getSource());
                     System.out.println("--------------------------------");
                     for (WeightTask weightTask : this.weightTasks) {
-                        for (Task task : weightTask.getTasks()) {
-                            task.report(this.intervalNs);
-                        }
+                        weightTask.getTask().report(this.intervalNs);
                     }
                     System.out.println();
                     System.out.println();
@@ -111,18 +109,17 @@ public class DistributedMeasureLatency extends MeasureLatency {
             // TODO the data must be sorted by X before ploting
             for (RemoteTask remoteTask : this.remoteTasks) {
                 for (WeightTask weightTask : this.weightTasks) {
-                    for (Task task : weightTask.getTasks()) {
-                        PlotData plotData = task.plot(0);
-                        if (xMap.containsKey(task.getName())) {
-                            List<Double> localXMap = xMap.get(task.getName());
-                            List<Double> localYMap = yMap.get(task.getName());
-                            localXMap.addAll(Arrays.asList(plotData.xData));
-                            localYMap.addAll(Arrays.asList(plotData.yData));
-                        } else {
-                            names.add(task.getName());
-                            xMap.put(task.getName(), Arrays.asList(plotData.xData));
-                            yMap.put(task.getName(), Arrays.asList(plotData.yData));
-                        }
+                    Task task = weightTask.getTask();
+                    PlotData plotData = task.plot(0);
+                    if (xMap.containsKey(task.getName())) {
+                        List<Double> localXMap = xMap.get(task.getName());
+                        List<Double> localYMap = yMap.get(task.getName());
+                        localXMap.addAll(Arrays.asList(plotData.xData));
+                        localYMap.addAll(Arrays.asList(plotData.yData));
+                    } else {
+                        names.add(task.getName());
+                        xMap.put(task.getName(), Arrays.asList(plotData.xData));
+                        yMap.put(task.getName(), Arrays.asList(plotData.yData));
                     }
                 }
             }

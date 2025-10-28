@@ -44,13 +44,9 @@ public class MeasureLatency implements Closeable {
         this.warmUpTimeSec = warmUpTimeSec;
     }
 
-    public MeasureLatency addTask(Task... tasks) {
-        if (this.weightTasks.isEmpty()) {
-            this.weightTasks.add(new WeightTask(Arrays.asList(tasks), 1.0));
-        } else if (this.weightTasks.size() == 1) {
-            this.weightTasks.getFirst().getTasks().addAll(Arrays.asList(tasks));
-        } else {
-            throw new IllegalStateException("You cannot mix weightTasks with task");
+    public MeasureLatency addTask(WeightTask... tasks) {
+        for (WeightTask task : tasks) {
+            this.weightTasks.add(task);
         }
         return this;
     }
@@ -106,32 +102,21 @@ public class MeasureLatency implements Closeable {
     }
 
     public MeasureLatency generateReport() {
-        List<Task> reported = new ArrayList<>();
         for (WeightTask weightTask : this.weightTasks) {
-            for (Task task : weightTask.getTasks()) {
-                if (!reported.contains(task)) {
-                    task.report(this.intervalNs);
-                    reported.add(task);
-                }
-            }
+            weightTask.getTask().report(this.intervalNs);
         }
         return this;
     }
 
     public MeasureLatency plot() {
-        List<Task> reported = new ArrayList<>();
         List<Trace> traces = new ArrayList<>();
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
         for (WeightTask weightTask : this.weightTasks) {
-            for (Task task : weightTask.getTasks()) {
-                if (!reported.contains(task)) {
-                    PlotData plotData = task.plot(i);
-                    traces.add(plotData.trace);
-                    i += 1;
-                    reported.add(task);
-                }
-            }
+            Task task = weightTask.getTask();
+            PlotData plotData = task.plot(i);
+            traces.add(plotData.trace);
+            i += 1;
         }
         return this.plot(traces);
     }

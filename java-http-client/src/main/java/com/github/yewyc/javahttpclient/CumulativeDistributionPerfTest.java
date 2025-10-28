@@ -83,101 +83,107 @@ public class CumulativeDistributionPerfTest {
 
     private List<WeightTask> getWeightTasks() {
         List<WeightTask> tasks = List.of(
-            registerInvalid(),
-            register(),
-            loginUnregister(),
-            loginViewLogout(),
-            loginViewUpdateLogout(),
-            loginAddViewLogout(),
-            loginDeleteLogout(),
-            loginAcceptViewLogout(),
-            loginAcceptSocketViewLogout(),
-            loginViewViewLogout()
+            new WeightTask(registerInvalid(), 0.1),
+            new WeightTask(register(), 0.1),
+            new WeightTask(loginUnregister(), 0.1),
+            new WeightTask(loginViewLogout(), 0.1),
+            new WeightTask(loginViewUpdateLogout(), 0.1),
+            new WeightTask(loginAddViewLogout(), 0.1),
+            new WeightTask(loginDeleteLogout(), 0.1),
+            new WeightTask(loginAcceptViewLogout(), 0.1),
+            new WeightTask(loginAcceptSocketViewLogout(), 0.1),
+            new WeightTask(loginViewViewLogout(), 0.1)
         );
         return tasks;
     }
 
-    // 10
-    public WeightTask loginViewViewLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.viewVehicle,
-            this.viewInsurance,
-            this.logout
-        ), 0.10);
+    public Task loginViewViewLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.viewVehicle.run();
+            this.viewInsurance.run();
+            this.logout.run();
+            return null;
+        });
+    }
+
+    public Task loginAcceptSocketViewLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.acceptQuoteWebSocket.run();
+            this.viewVehicle.run();
+            this.logout.run();
+            return null;
+        });
     }
 
     // ok
-    public WeightTask loginAcceptSocketViewLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.acceptQuoteWebSocket,
-            this.viewVehicle,
-            this.logout
-        ), 0.05);
+    public Task loginAcceptViewLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.acceptQuote.run();
+            this.viewVehicle.run();
+            this.logout.run();
+            return null;
+        });
     }
 
-    // ok
-    public WeightTask loginAcceptViewLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.acceptQuote,
-            this.viewVehicle,
-            this.logout
-        ), 0.20);
+    public Task loginDeleteLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.deleteVehicle.run();
+            this.logout.run();
+            return null;
+        });
     }
 
-    public WeightTask loginDeleteLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.deleteVehicle,
-            this.logout
-        ), 0.10);
+    public Task loginAddViewLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.addVehicle.run();
+            this.viewQuote.run();
+            this.logout.run();
+            return null;
+        });
     }
 
-    public WeightTask loginAddViewLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.addVehicle,
-            this.viewQuote,
-            this.logout
-        ), 0.25);
+    public Task loginViewUpdateLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.viewUser.run();
+            this.updateUser.run();
+            this.logout.run();
+            return null;
+        });
     }
 
-    public WeightTask loginViewUpdateLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.viewUser,
-            this.updateUser,
-            this.logout
-        ), 0.10);
+    public Task loginViewLogout() {
+        return new Task("", () -> {
+            this.login.run();
+            this.viewUser.run();
+            this.logout.run();
+            return null;
+        });
     }
 
-    public WeightTask loginViewLogout() {
-        return new WeightTask(List.of(
-            this.login,
-            this.viewUser,
-            this.logout
-        ), 0.05);
+    public Task loginUnregister() {
+        return new Task("", () -> {
+            this.login.run();
+            this.unregister.run();
+            return null;
+        });
     }
 
-    public WeightTask loginUnregister() {
-        return new WeightTask(List.of(
-            this.login,
-            this.unregister
-        ), 0.05);
+    public Task register() {
+        return new Task("", () -> {
+            return null;
+        });
     }
 
-    public WeightTask register() {
-        return new WeightTask(List.of(
-            //
-        ), 0.08);
-    }
-
-    public WeightTask registerInvalid() {
-        return new WeightTask(List.of(
-            //
-        ), 0.02);
+    public Task registerInvalid() {
+        return new Task("", () -> {
+            return null;
+        });
     }
 
     public Task login() {
