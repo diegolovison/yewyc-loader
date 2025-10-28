@@ -76,7 +76,7 @@ public class MeasureLatency implements Closeable {
         final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            distributeTasks(durationNs, executor, recordExecutor, probabilities);
+            distributeTasks(durationNs, executor, probabilities);
         } // The executor automatically shuts down here
 
         log.info("Main executor finished");
@@ -94,10 +94,10 @@ public class MeasureLatency implements Closeable {
         return this;
     }
 
-    private void distributeTasks(long durationNs, ExecutorService executor, ThreadPoolExecutor recordExecutor, double[] probabilities) {
+    private void distributeTasks(long durationNs, ExecutorService executor, double[] probabilities) {
 
         for (int i = 0; i < this.virtualThreads; i++) {
-            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, recordExecutor, probabilities));
+            executor.submit(new RunnableTask(intervalNs, this.weightTasks, durationNs, probabilities));
         }
     }
 

@@ -1,8 +1,7 @@
 package com.github.yewyc;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
+
 import java.util.concurrent.locks.LockSupport;
 
 import static com.github.yewyc.CumulativeDistributionFunction.cdfChoice;
@@ -12,14 +11,12 @@ public class RunnableTask implements Runnable {
     private final long intervalNs;
     private final List<WeightTask> weightTasks;
     private final long timeNs;
-    private final ThreadPoolExecutor recordExecutor;
     private final double[] probabilities;
 
-    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long timeNs, ThreadPoolExecutor recordExecutor, double[] probabilities) {
+    public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long timeNs, double[] probabilities) {
         this.intervalNs = intervalNs;
         this.weightTasks = weightTasks;
         this.timeNs = timeNs;
-        this.recordExecutor = recordExecutor;
         this.probabilities = probabilities;
     }
 
@@ -28,7 +25,6 @@ public class RunnableTask implements Runnable {
         int i = 0;
         long start = System.nanoTime();
 
-        outer:
         while (true) {
 
             // when start
@@ -39,7 +35,6 @@ public class RunnableTask implements Runnable {
 
             // request
             long taskStarted = System.nanoTime();
-            long taskElapsed = 0;
 
             Task task;
             if (this.weightTasks.size() > 1) {
@@ -49,23 +44,16 @@ public class RunnableTask implements Runnable {
                 task = this.weightTasks.get(0).getTask();
             }
 
-
             task.addBlockedTime(taskStarted - intendedTime);
             task.run();
 
             long end = System.nanoTime();
             // stop?
             if (end - start > timeNs) {
-                break outer;
+                break;
             }
-            taskElapsed = record(task, end, intendedTime, taskElapsed, taskStarted);
-        }
-    }
 
-    private long record(Task task, long end, long intendedTime, long taskElapsed, long taskStarted) {
-        long finalTaskElapsed = taskElapsed;
-        CompletableFuture.runAsync(() -> task.recordValue(end, end - intendedTime - finalTaskElapsed), recordExecutor);
-        taskElapsed = end - taskStarted;
-        return taskElapsed;
+            task.recordValue(end, end - intendedTime);
+        }
     }
 }
