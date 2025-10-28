@@ -51,7 +51,7 @@ public class Benchmark implements Closeable {
         return this;
     }
 
-    public Benchmark addWeightTask(List<WeightTask> weightTasks) {
+    public Benchmark addTask(List<WeightTask> weightTasks) {
         this.weightTasks.addAll(weightTasks);
         return this;
     }
