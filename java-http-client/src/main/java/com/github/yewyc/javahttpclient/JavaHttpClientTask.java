@@ -10,23 +10,32 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.Callable;
 
 public class JavaHttpClientTask {
 
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
 
-    protected static Task createTask1() {
+    public static Callable<Task> task1() {
 
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
+        class LocalTask extends Task {
 
-        return new Task("http-request-hello") {
+            private HttpClient client;
+            private HttpRequest request;
+            private HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("http-request-hello");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -42,19 +51,31 @@ public class JavaHttpClientTask {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    protected static Task createTask2() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("http-request-my-name") {
+    public static Callable<Task> task2() {
+
+        class LocalTask extends Task {
+
+            private HttpClient client;
+            private HttpRequest request;
+            private HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("http-request-my-name");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -70,6 +91,8 @@ public class JavaHttpClientTask {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 }

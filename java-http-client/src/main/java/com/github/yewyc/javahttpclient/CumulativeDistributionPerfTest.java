@@ -1,9 +1,6 @@
 package com.github.yewyc.javahttpclient;
 
-import com.github.yewyc.MeasureLatency;
-import com.github.yewyc.Task;
-import com.github.yewyc.TaskStatus;
-import com.github.yewyc.WeightTask;
+import com.github.yewyc.*;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -13,8 +10,30 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.Callable;
 
+import static com.github.yewyc.CallableUtils.callTask;
 
+/**
+ * Extract from: https://spec.org/jenterprise2018web/docs/RunRules/#business-transaction-mix-requirements
+ *
+ * Each Business Transaction that is run by the Insurance Driver is a sequence of operations to the Insurance service.
+ * Business Transaction sequences are selected by the Driver based on the mix shown in Table 2.
+ *
+ * TABLE 2 : Business Transaction Mix Requirements
+ *
+ * Business Transaction Sequence	                        Percent Mix
+ * Register Invalid                                         2
+ * Register                                                 8
+ * Login / Unregister                                       5
+ * Login / View User / Logout                               5
+ * Login / View User / Update User / Logout                 10
+ * Login / Add Vehicle / View Quote / Logout                25
+ * Login / Delete Vehicle / Logout                          10
+ * Login / Accept Quote / View Vehicle / Logout             20
+ * Login / Accept Quote + WebSocket / View Vehicle / Logout 5
+ * Login / View Vehicle / View Insurance / Logout           10
+ */
 public class CumulativeDistributionPerfTest {
 
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
@@ -30,55 +49,6 @@ public class CumulativeDistributionPerfTest {
                     .generateReport()
                     .plot();
         }
-    }
-
-    private Task login;
-    private Task unregister;
-    private Task viewUser;
-    private Task updateUser;
-    private Task logout;
-    private Task addVehicle;
-    private Task deleteVehicle;
-    private Task viewQuote;
-    private Task acceptQuote;
-    private Task viewVehicle;
-    private Task acceptQuoteWebSocket;
-    private Task viewInsurance;
-
-
-    /**
-     * Extract from: https://spec.org/jenterprise2018web/docs/RunRules/#business-transaction-mix-requirements
-     *
-     * Each Business Transaction that is run by the Insurance Driver is a sequence of operations to the Insurance service.
-     * Business Transaction sequences are selected by the Driver based on the mix shown in Table 2.
-     *
-     * TABLE 2 : Business Transaction Mix Requirements
-     *
-     * Business Transaction Sequence	                        Percent Mix
-     * Register Invalid                                         2
-     * Register                                                 8
-     * Login / Unregister                                       5
-     * Login / View User / Logout                               5
-     * Login / View User / Update User / Logout                 10
-     * Login / Add Vehicle / View Quote / Logout                25
-     * Login / Delete Vehicle / Logout                          10
-     * Login / Accept Quote / View Vehicle / Logout             20
-     * Login / Accept Quote + WebSocket / View Vehicle / Logout 5
-     * Login / View Vehicle / View Insurance / Logout           10
-     */
-    public CumulativeDistributionPerfTest() {
-        this.login = this.login();
-        this.unregister = this.unregister();
-        this.viewUser = this.viewUser();
-        this.updateUser = this.updateUser();
-        this.logout = this.logout();
-        this.addVehicle = this.addVehicle();
-        this.deleteVehicle = this.deleteVehicle();
-        this.viewQuote = this.viewQuote();
-        this.acceptQuote = this.acceptQuote();
-        this.viewVehicle = this.viewVehicle();
-        this.acceptQuoteWebSocket = this.acceptQuoteWebSocket();
-        this.viewInsurance = this.viewInsurance();
     }
 
     private List<WeightTask> getWeightTasks() {
@@ -97,135 +67,279 @@ public class CumulativeDistributionPerfTest {
         return tasks;
     }
 
-    public Task loginViewViewLogout() {
-        return new Task("") {
+    public Callable<Task> loginViewViewLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task logout;
+            private Task viewVehicle;
+            private Task viewInsurance;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.viewVehicle = callTask(CumulativeDistributionPerfTest.this.viewVehicle());
+                this.viewInsurance = callTask(CumulativeDistributionPerfTest.this.viewInsurance());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.viewVehicle.run();
-                CumulativeDistributionPerfTest.this.viewInsurance.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.viewVehicle.run();
+                this.viewInsurance.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginAcceptSocketViewLogout() {
-        return new Task("") {
+    public Callable<Task> loginAcceptSocketViewLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task logout;
+            private Task viewVehicle;
+            private Task acceptQuoteWebSocket;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.acceptQuoteWebSocket = callTask(CumulativeDistributionPerfTest.this.acceptQuoteWebSocket());
+                this.viewVehicle = callTask(CumulativeDistributionPerfTest.this.viewVehicle());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.acceptQuoteWebSocket.run();
-                CumulativeDistributionPerfTest.this.viewVehicle.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.acceptQuoteWebSocket.run();
+                this.viewVehicle.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
     // ok
-    public Task loginAcceptViewLogout() {
-        return new Task("") {
+    public Callable<Task> loginAcceptViewLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task logout;
+            private Task acceptQuote;
+            private Task viewVehicle;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.acceptQuote = callTask(CumulativeDistributionPerfTest.this.acceptQuote());
+                this.viewVehicle = callTask(CumulativeDistributionPerfTest.this.viewVehicle());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.acceptQuote.run();
-                CumulativeDistributionPerfTest.this.viewVehicle.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.acceptQuote.run();
+                this.viewVehicle.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginDeleteLogout() {
-        return new Task("") {
+    public Callable<Task> loginDeleteLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task logout;
+            private Task deleteVehicle;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.deleteVehicle = callTask(CumulativeDistributionPerfTest.this.deleteVehicle());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.deleteVehicle.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.deleteVehicle.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginAddViewLogout() {
-        return new Task("") {
+    public Callable<Task> loginAddViewLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task logout;
+            private Task addVehicle;
+            private Task viewQuote;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.addVehicle = callTask(CumulativeDistributionPerfTest.this.addVehicle());
+                this.viewQuote = callTask(CumulativeDistributionPerfTest.this.viewQuote());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.addVehicle.run();
-                CumulativeDistributionPerfTest.this.viewQuote.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.addVehicle.run();
+                this.viewQuote.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginViewUpdateLogout() {
-        return new Task("") {
+    public Callable<Task> loginViewUpdateLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task viewUser;
+            private Task updateUser;
+            private Task logout;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.viewUser = callTask(CumulativeDistributionPerfTest.this.viewUser());
+                this.updateUser = callTask(CumulativeDistributionPerfTest.this.updateUser());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.viewUser.run();
-                CumulativeDistributionPerfTest.this.updateUser.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.viewUser.run();
+                this.updateUser.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginViewLogout() {
-        return new Task("") {
+    public Callable<Task> loginViewLogout() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task viewUser;
+            private Task logout;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.viewUser = callTask(CumulativeDistributionPerfTest.this.viewUser());
+                this.logout = callTask(CumulativeDistributionPerfTest.this.logout());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.viewUser.run();
-                CumulativeDistributionPerfTest.this.logout.run();
+                this.login.run();
+                this.viewUser.run();
+                this.logout.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task loginUnregister() {
-        return new Task("") {
+    public Callable<Task> loginUnregister() {
+        class LocalTask extends Task {
+
+            private Task login;
+            private Task unregister;
+
+            public LocalTask() {
+                super("");
+                this.login = callTask(CumulativeDistributionPerfTest.this.login());
+                this.unregister = callTask(CumulativeDistributionPerfTest.this.unregister());
+            }
+
             @Override
             public TaskStatus run() {
-                CumulativeDistributionPerfTest.this.login.run();
-                CumulativeDistributionPerfTest.this.unregister.run();
+                this.login.run();
+                this.unregister.run();
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task register() {
-        return new Task("") {
+    public Callable<Task> register() {
+        class LocalTask extends Task {
+
+            public LocalTask() {
+                super("");
+            }
+
             @Override
             public TaskStatus run() {
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task registerInvalid() {
-        return new Task("") {
+    public Callable<Task> registerInvalid() {
+        class LocalTask extends Task {
+
+            public LocalTask() {
+                super("");
+            }
+
             @Override
             public TaskStatus run() {
                 return TaskStatus.SUCCESS;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task login() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("login") {
+    public Callable<Task> login() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("login");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -241,19 +355,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task unregister() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("unregister") {
+    public Callable<Task> unregister() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("unregister");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -269,19 +395,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task viewUser() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("viewUser") {
+    public Callable<Task> viewUser() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("viewUser");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -297,19 +435,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task updateUser() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("updateUser") {
+    public Callable<Task> updateUser() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("updateUser");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -325,19 +475,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task logout() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("logout") {
+    public Callable<Task> logout() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("logout");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -353,19 +515,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task addVehicle() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("addVehicle") {
+    public Callable<Task> addVehicle() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("addVehicle");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -381,19 +555,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task deleteVehicle() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("deleteVehicle") {
+    public Callable<Task> deleteVehicle() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("deleteVehicle");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -409,19 +595,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task viewQuote() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("viewQuote") {
+    public Callable<Task> viewQuote() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("viewQuote");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -437,19 +635,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task acceptQuote() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("acceptQuote") {
+    public Callable<Task> acceptQuote() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("acceptQuote");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -465,19 +675,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task viewVehicle() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("viewVehicle") {
+    public Callable<Task> viewVehicle() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("viewVehicle");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -493,19 +715,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task acceptQuoteWebSocket() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("acceptQuoteWebSocket") {
+    public Callable<Task> acceptQuoteWebSocket() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("acceptQuoteWebSocket");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -521,19 +755,31 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 
-    public Task viewInsurance() {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/hello"))
-                .GET()
-                .build();
-        HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("viewInsurance") {
+    public Callable<Task> viewInsurance() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
+
+            public LocalTask() {
+                super("viewInsurance");
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                this.request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/hello"))
+                        .GET()
+                        .build();
+                this.handler = HttpResponse.BodyHandlers.ofString();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -549,6 +795,8 @@ public class CumulativeDistributionPerfTest {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 }

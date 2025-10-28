@@ -5,11 +5,21 @@ import com.github.yewyc.TaskStatus;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 
+import java.util.concurrent.Callable;
+
 public class ReactorNettyHttpClientTask {
 
-    protected static Task createTask1() {
-        HttpClient client = HttpClient.create();
-        return new Task("http-request-hello") {
+    protected static Callable<Task> createTask1() {
+
+        class LocalTask extends Task {
+
+            private final HttpClient client;
+
+            public LocalTask() {
+                super("");
+                this.client = HttpClient.create();
+            }
+
             @Override
             public TaskStatus run() {
                 TaskStatus localStatus;
@@ -25,6 +35,8 @@ public class ReactorNettyHttpClientTask {
                 }
                 return localStatus;
             }
-        };
+        }
+
+        return LocalTask::new;
     }
 }

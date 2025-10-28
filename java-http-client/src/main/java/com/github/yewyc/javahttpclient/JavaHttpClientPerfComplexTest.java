@@ -8,7 +8,7 @@ public class JavaHttpClientPerfComplexTest extends JavaHttpClientSimplePerfTest 
     public static void main(String[] args) {
         try (MeasureLatency measure = new MeasureLatency(10, 100, 1, 5)) {
             measure
-                    .addTask(new WeightTask(createTask1(), 0.5), new WeightTask(createTask2(), 0.5))
+                    .addTask(new WeightTask(task1(), 0.5), new WeightTask(task2(), 0.5))
                     .start()
                     .generateReport()
                     .plot();
