@@ -64,32 +64,18 @@ public class Benchmark implements Closeable {
         if (sum > 1.0) {
             throw new IllegalStateException("The sum of the probabilities cannot be greater than 1.0");
         }
-        log.info("Starting the warm up phase");
-        run(TimeUnit.SECONDS.toNanos(warmUpTimeSec), probabilities);
         log.info("Starting the benchmark");
-        run(TimeUnit.SECONDS.toNanos(timeSec), probabilities);
+        run(TimeUnit.SECONDS.toNanos(warmUpTimeSec) + TimeUnit.SECONDS.toNanos(timeSec), probabilities);
         return this;
     }
 
     private Benchmark run(long durationNs, double[] probabilities) {
-
-        final ThreadPoolExecutor recordExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
             distributeTasks(durationNs, executor, probabilities);
         } // The executor automatically shuts down here
 
         log.info("Main executor finished");
-
-        try {
-            log.info("Waiting for record executor: " + recordExecutor.getQueue().size());
-            recordExecutor.shutdown();
-            recordExecutor.awaitTermination(1, TimeUnit.HOURS);
-        } catch (InterruptedException e) {
-            log.warn("More than 1 hour waiting to record the values. Some values may be missing", e);
-        }
-
-        log.info("Record executor finished");
 
         return this;
     }
