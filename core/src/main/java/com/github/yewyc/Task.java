@@ -13,23 +13,21 @@ import java.util.stream.Stream;
 
 import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
-public class Task implements Serializable {
+public abstract class Task implements Serializable {
 
     private static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     private static final int numberOfSignificantValueDigits = 3;
     private static final long NANOS_PER_SECOND = 1_000_000_000L;
     private static final long NANO_PER_MS = 1_000_000;
     private final String name;
-    private transient final Callable<TaskStatus> action;
     private Recorder recorder;
     private long blockedTime;
     private List<Histogram> histograms;
     private long firstRecorderData = 0;
     private long lastRecordData = 0;
 
-    public Task(String name, Callable<TaskStatus> action) {
+    public Task(String name) {
         this.name = name;
-        this.action = action;
         // 1. Initialize a Recorder
         // We configure it to track values up to 1 minute (60,000 ms)
         // with 3 significant digits of precision.
@@ -43,13 +41,7 @@ public class Task implements Serializable {
         return this.name;
     }
 
-    public TaskStatus run() {
-        try {
-            return this.action.call();
-        } catch (Exception e) {
-            return TaskStatus.FAILED;
-        }
-    }
+    public abstract TaskStatus run();
 
     /**
      *

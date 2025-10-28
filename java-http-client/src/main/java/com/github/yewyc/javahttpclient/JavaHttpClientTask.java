@@ -16,6 +16,7 @@ public class JavaHttpClientTask {
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
 
     protected static Task createTask1() {
+
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -24,20 +25,24 @@ public class JavaHttpClientTask {
                 .GET()
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("http-request-hello", () -> {
-            TaskStatus localStatus;
-            try {
-                HttpResponse<String> response = client.send(request, handler);
-                if (response.statusCode() == 200) {
-                    localStatus = TaskStatus.SUCCESS;
-                } else {
+
+        return new Task("http-request-hello") {
+            @Override
+            public TaskStatus run() {
+                TaskStatus localStatus;
+                try {
+                    HttpResponse<String> response = client.send(request, handler);
+                    if (response.statusCode() == 200) {
+                        localStatus = TaskStatus.SUCCESS;
+                    } else {
+                        localStatus = TaskStatus.FAILED;
+                    }
+                } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-            } catch (IOException | InterruptedException e) {
-                localStatus = TaskStatus.FAILED;
+                return localStatus;
             }
-            return localStatus;
-        });
+        };
     }
 
     protected static Task createTask2() {
@@ -49,19 +54,22 @@ public class JavaHttpClientTask {
                 .GET()
                 .build();
         HttpResponse.BodyHandler<String> handler = HttpResponse.BodyHandlers.ofString();
-        return new Task("http-request-my-name", () -> {
-            TaskStatus localStatus;
-            try {
-                HttpResponse<String> response = client.send(request, handler);
-                if (response.statusCode() == 200) {
-                    localStatus = TaskStatus.SUCCESS;
-                } else {
+        return new Task("http-request-my-name") {
+            @Override
+            public TaskStatus run() {
+                TaskStatus localStatus;
+                try {
+                    HttpResponse<String> response = client.send(request, handler);
+                    if (response.statusCode() == 200) {
+                        localStatus = TaskStatus.SUCCESS;
+                    } else {
+                        localStatus = TaskStatus.FAILED;
+                    }
+                } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-            } catch (IOException | InterruptedException e) {
-                localStatus = TaskStatus.FAILED;
+                return localStatus;
             }
-            return localStatus;
-        });
+        };
     }
 }

@@ -18,20 +18,23 @@ public class OkHttpClientTask {
         Request request = new Request.Builder()
                 .url("http://localhost:8080/hello")
                 .build();
-        return new Task("http-request-hello", () -> {
-            TaskStatus localStatus;
-            try {
-                try (Response response = client.newCall(request).execute()) {
-                    if (response.isSuccessful()) {
-                        localStatus = TaskStatus.SUCCESS;
-                    } else {
-                        localStatus = TaskStatus.FAILED;
+        return new Task("http-request-hello") {
+            @Override
+            public TaskStatus run() {
+                TaskStatus localStatus;
+                try {
+                    try (Response response = client.newCall(request).execute()) {
+                        if (response.isSuccessful()) {
+                            localStatus = TaskStatus.SUCCESS;
+                        } else {
+                            localStatus = TaskStatus.FAILED;
+                        }
                     }
+                } catch (IOException e) {
+                    localStatus = TaskStatus.FAILED;
                 }
-            } catch (IOException e) {
-                localStatus = TaskStatus.FAILED;
+                return localStatus;
             }
-            return localStatus;
-        });
+        };
     }
 }
