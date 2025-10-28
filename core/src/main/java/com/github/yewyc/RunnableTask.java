@@ -48,12 +48,13 @@ public class RunnableTask implements Runnable {
             task.run();
 
             long end = System.nanoTime();
+
+            task.recordValue(end, end - intendedTime);
+
             // stop?
             if (end - start > timeNs) {
                 break;
             }
-
-            task.recordValue(end, end - intendedTime);
         }
     }
 }
