@@ -24,6 +24,8 @@ public abstract class Task implements Serializable {
     private List<Histogram> histograms;
     private long firstRecorderData = 0;
     private long lastRecordData = 0;
+    private int errorCount = 0;
+    private List<Integer> errors;
 
     public Task(String name) {
         this.name = name;
@@ -34,6 +36,8 @@ public abstract class Task implements Serializable {
         this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
         this.histograms = new ArrayList<>();
         this.blockedTime = 0;
+
+        this.errors = new ArrayList<>();
     }
 
     public String getName() {
@@ -44,10 +48,11 @@ public abstract class Task implements Serializable {
 
     /**
      *
-     * @param when value in ns
-     * @param value value in ns
+     * @param when       value in ns
+     * @param value      value in ns
+     * @param taskStatus
      */
-    public void recordValue(long when, long value) {
+    public void recordValue(long when, long value, TaskStatus taskStatus) {
         if (this.firstRecorderData == 0) {
             this.firstRecorderData = when;
         }
@@ -56,10 +61,15 @@ public abstract class Task implements Serializable {
         if (hasOneSecondElapsed) {
             if (this.lastRecordData != 0) {
                 this.histograms.add(recorder.getIntervalHistogram());
+                this.errors.add(this.errorCount);
+                this.errorCount = 0;
             }
             this.lastRecordData = when;
         }
         this.recorder.recordValue(value);
+        if (TaskStatus.FAILED.equals(taskStatus)) {
+            this.errorCount++;
+        }
     }
 
     /**
@@ -100,6 +110,7 @@ public abstract class Task implements Serializable {
         System.out.println("\t======== Info ========");
         System.out.println("\tTotal requests: " + totalRequests);
         System.out.println("\tTotal histograms: " + this.histograms.size());
+        System.out.println("\tTotal errors: " + this.errors.stream().mapToInt(Integer::intValue).sum());
         System.out.println("\tDuration: " + duration + " sec");
         System.out.println("\tMean: " + (latencyHistogram.getMean() / 1_000_000.0) + " ms");
         System.out.println("\tBlocked time: " + (blockedTime / 1_000_000.0) + " ms");

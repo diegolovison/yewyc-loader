@@ -45,11 +45,11 @@ public class RunnableTask implements Runnable {
             }
 
             task.addBlockedTime(taskStarted - intendedTime);
-            task.run();
+            TaskStatus taskStatus = task.run();
 
             long end = System.nanoTime();
 
-            task.recordValue(end, end - intendedTime);
+            task.recordValue(end, end - intendedTime, taskStatus);
 
             // stop?
             if (end - start > timeNs) {
