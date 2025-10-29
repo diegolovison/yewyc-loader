@@ -42,7 +42,6 @@ public class RunnableTask implements Runnable {
 
             // request
             long taskStarted = System.nanoTime();
-            boolean isWarmUpPhase = taskStarted < this.warmUpDurationNs;
 
             Task task;
             if (this.weightTasks.size() > 1) {
@@ -54,9 +53,9 @@ public class RunnableTask implements Runnable {
 
             task.addBlockedTime(taskStarted - intendedTime);
             TaskStatus taskStatus = task.run();
-
             long end = System.nanoTime();
 
+            boolean isWarmUpPhase = (end - start) < this.warmUpDurationNs;
             if (isWarmUpPhase) {
                 if (this.recordWarmUp) {
                     task.recordValue(end, end - intendedTime, taskStatus);
