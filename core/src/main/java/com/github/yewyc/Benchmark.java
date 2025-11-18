@@ -21,16 +21,16 @@ public class Benchmark implements Closeable {
     protected final List<WeightTask> weightTasks = new ArrayList<>();
 
     private final int virtualThreads;
-    private final long timeSec;
+    private final long duration;
     protected final long intervalNs;
     private final long warmUpTimeSec;
     private boolean recordWarmUp;
 
-    public Benchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
-        this(timeSec, opsPerSec, virtualThreads, warmUpTimeSec, false);
+    public Benchmark(long duration, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
+        this(duration, opsPerSec, virtualThreads, warmUpTimeSec, false);
     }
 
-    public Benchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, boolean recordWarmUp) {
+    public Benchmark(long duration, int opsPerSec, int virtualThreads, long warmUpTimeSec, boolean recordWarmUp) {
         if (virtualThreads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -41,7 +41,7 @@ public class Benchmark implements Closeable {
             throw new RuntimeException("warmUpTimeSec must be greater than 0");
         }
         this.virtualThreads = virtualThreads;
-        this.timeSec = timeSec;
+        this.duration = duration;
         this.intervalNs = 1000000000 / (opsPerSec / virtualThreads);
         this.warmUpTimeSec = warmUpTimeSec;
         this.recordWarmUp = recordWarmUp;
@@ -76,7 +76,7 @@ public class Benchmark implements Closeable {
                                 intervalNs,
                                 this.weightTasks,
                                 TimeUnit.SECONDS.toNanos(warmUpTimeSec),
-                                TimeUnit.SECONDS.toNanos(timeSec),
+                                TimeUnit.SECONDS.toNanos(duration),
                                 probabilities,
                                 this.recordWarmUp
                         )
