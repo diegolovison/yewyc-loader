@@ -24,7 +24,7 @@ public class Benchmark implements Closeable {
     private final long duration;
     protected final long intervalNs;
     private final long warmUpDuration;
-    private boolean recordWarmUp;
+    private final boolean recordWarmUp;
 
     public Benchmark(long duration, int opsPerSec, int threads, long warmUpDuration) {
         this(duration, opsPerSec, threads, warmUpDuration, false);
@@ -73,10 +73,10 @@ public class Benchmark implements Closeable {
             for (int i = 0; i < this.threads; i++) {
                 executor.submit(
                         new RunnableTask(
-                                intervalNs,
+                                this.intervalNs,
                                 this.weightTasks,
-                                TimeUnit.SECONDS.toNanos(warmUpDuration),
-                                TimeUnit.SECONDS.toNanos(duration),
+                                TimeUnit.SECONDS.toNanos(this.warmUpDuration),
+                                TimeUnit.SECONDS.toNanos(this.duration),
                                 probabilities,
                                 this.recordWarmUp
                         )

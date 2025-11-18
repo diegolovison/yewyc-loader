@@ -15,10 +15,15 @@ public class WeightTask {
         this.probability = probability;
     }
 
-    public Task getTask() {
-        if (this.instance == null) {
-            this.instance = callTask(task);
+    public void initialize() {
+        synchronized (this) {
+            if (this.instance == null) {
+                this.instance = callTask(this.task);
+            }
         }
+    }
+
+    public Task getTask() {
         return this.instance;
     }
 

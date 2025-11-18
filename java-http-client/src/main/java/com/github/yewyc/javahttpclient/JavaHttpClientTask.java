@@ -16,7 +16,7 @@ public class JavaHttpClientTask {
 
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
 
-    public static Callable<Task> task1() {
+    public static Callable<Task> task1(Duration connectTimeout) {
 
         class LocalTask extends Task {
 
@@ -27,7 +27,7 @@ public class JavaHttpClientTask {
             public LocalTask() {
                 super("http-request-hello");
                 this.client = HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5))
+                        .connectTimeout(connectTimeout)
                         .build();
                 this.request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello"))
@@ -56,7 +56,7 @@ public class JavaHttpClientTask {
         return LocalTask::new;
     }
 
-    public static Callable<Task> task2() {
+    public static Callable<Task> task2(Duration connectTimeout) {
 
         class LocalTask extends Task {
 
@@ -67,7 +67,7 @@ public class JavaHttpClientTask {
             public LocalTask() {
                 super("http-request-my-name");
                 this.client = HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5))
+                        .connectTimeout(connectTimeout)
                         .build();
                 this.request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))

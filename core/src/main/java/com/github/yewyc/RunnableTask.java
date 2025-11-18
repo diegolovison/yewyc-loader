@@ -29,6 +29,12 @@ public class RunnableTask implements Runnable {
 
     @Override
     public void run() {
+
+        // initialize
+        for (WeightTask task : weightTasks) {
+            task.initialize();
+        }
+
         int i = 0;
         long start = System.nanoTime();
 
