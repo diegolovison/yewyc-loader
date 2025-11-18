@@ -20,18 +20,18 @@ public class Benchmark implements Closeable {
 
     protected final List<WeightTask> weightTasks = new ArrayList<>();
 
-    private final int virtualThreads;
+    private final int threads;
     private final long duration;
     protected final long intervalNs;
     private final long warmUpTimeSec;
     private boolean recordWarmUp;
 
-    public Benchmark(long duration, int opsPerSec, int virtualThreads, long warmUpTimeSec) {
-        this(duration, opsPerSec, virtualThreads, warmUpTimeSec, false);
+    public Benchmark(long duration, int opsPerSec, int threads, long warmUpTimeSec) {
+        this(duration, opsPerSec, threads, warmUpTimeSec, false);
     }
 
-    public Benchmark(long duration, int opsPerSec, int virtualThreads, long warmUpTimeSec, boolean recordWarmUp) {
-        if (virtualThreads <= 0) {
+    public Benchmark(long duration, int opsPerSec, int threads, long warmUpTimeSec, boolean recordWarmUp) {
+        if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
         if (opsPerSec <= 0) {
@@ -40,9 +40,9 @@ public class Benchmark implements Closeable {
         if (warmUpTimeSec <= 0) {
             throw new RuntimeException("warmUpTimeSec must be greater than 0");
         }
-        this.virtualThreads = virtualThreads;
+        this.threads = threads;
         this.duration = duration;
-        this.intervalNs = 1000000000 / (opsPerSec / virtualThreads);
+        this.intervalNs = 1000000000 / (opsPerSec / threads);
         this.warmUpTimeSec = warmUpTimeSec;
         this.recordWarmUp = recordWarmUp;
     }
@@ -70,7 +70,7 @@ public class Benchmark implements Closeable {
 
         log.info("Starting the benchmark");
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            for (int i = 0; i < this.virtualThreads; i++) {
+            for (int i = 0; i < this.threads; i++) {
                 executor.submit(
                         new RunnableTask(
                                 intervalNs,
