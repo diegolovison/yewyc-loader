@@ -83,14 +83,6 @@ public class Benchmark implements Closeable {
             intervalNs = 1000000000 / (this.rate / this.threads);
         }
 
-        double[] probabilities = this.weightTasks.stream()
-                .mapToDouble(WeightTask::getProbability)
-                .toArray();
-        double sum = Arrays.stream(probabilities).sum();
-        if (sum > 1.0) {
-            throw new IllegalStateException("The sum of the probabilities cannot be greater than 1.0");
-        }
-
         log.info("Starting the benchmark");
         List<Future<List<InstanceTask>>> tasks = new ArrayList<>();
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
@@ -100,7 +92,6 @@ public class Benchmark implements Closeable {
                         this.weightTasks,
                         TimeUnit.SECONDS.toNanos(this.warmUpDuration),
                         TimeUnit.SECONDS.toNanos(this.duration),
-                        probabilities,
                         this.recordWarmUp
                 );
                 Future<List<InstanceTask>> futureTask = executor.submit(task);

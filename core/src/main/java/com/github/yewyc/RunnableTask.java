@@ -1,6 +1,7 @@
 package com.github.yewyc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import java.util.concurrent.Callable;
@@ -18,13 +19,20 @@ public class RunnableTask implements Callable<List<InstanceTask>> {
     private final boolean recordWarmUp;
 
     public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long warmUpDurationNs,
-                        long steadyStateDurationNs, double[] probabilities, boolean recordWarmUp) {
+                        long steadyStateDurationNs, boolean recordWarmUp) {
         this.intervalNs = intervalNs;
         this.weightTasks = weightTasks;
         this.warmUpDurationNs = warmUpDurationNs;
         this.totalDurationNs = this.warmUpDurationNs +  steadyStateDurationNs;
-        this.probabilities = probabilities;
         this.recordWarmUp = recordWarmUp;
+
+        this.probabilities = this.weightTasks.stream()
+                .mapToDouble(WeightTask::getProbability)
+                .toArray();
+        double sum = Arrays.stream(probabilities).sum();
+        if (sum > 1.0) {
+            throw new IllegalStateException("The sum of the probabilities cannot be greater than 1.0");
+        }
     }
 
     @Override
