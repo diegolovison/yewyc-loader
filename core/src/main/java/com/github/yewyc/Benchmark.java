@@ -26,23 +26,23 @@ public class Benchmark implements Closeable {
     private final long warmUpDuration;
     private final boolean recordWarmUp;
 
-    public Benchmark(long duration, int opsPerSec, int threads, long warmUpDuration) {
-        this(duration, opsPerSec, threads, warmUpDuration, false);
+    public Benchmark(long duration, int rate, int threads, long warmUpDuration) {
+        this(duration, rate, threads, warmUpDuration, false);
     }
 
-    public Benchmark(long duration, int opsPerSec, int threads, long warmUpDuration, boolean recordWarmUp) {
+    public Benchmark(long duration, int rate, int threads, long warmUpDuration, boolean recordWarmUp) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
-        if (opsPerSec <= 0) {
-            throw new RuntimeException("opsPerSec must be greater than 0");
+        if (rate <= 0) {
+            throw new RuntimeException("rate must be greater than 0");
         }
         if (warmUpDuration <= 0) {
             throw new RuntimeException("warmUpTimeSec must be greater than 0");
         }
         this.threads = threads;
         this.duration = duration;
-        this.intervalNs = 1000000000 / (opsPerSec / threads);
+        this.intervalNs = 1000000000 / (rate / threads);
         this.warmUpDuration = warmUpDuration;
         this.recordWarmUp = recordWarmUp;
     }
