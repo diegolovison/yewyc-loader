@@ -10,11 +10,13 @@ import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class Statistics {
 
+    public static final long NANO_PER_MS = 1_000_000;
+
     private final String name;
     private final Histogram histogram;
     private long firstRecordedTime;
     private long lastRecordedTime;
-    private long totalRequests;
+    private List<Long> totalRequests;
     private int errors;
     private final double[] xData;
     private final double[] yData;
@@ -23,7 +25,7 @@ public class Statistics {
     private final List<double[]> yDataList;
 
     public Statistics(String name, Histogram histogram, long firstRecordedTime, long lastRecordedTime,
-                      long totalRequests, int errors, double[] xData, double[] yData) {
+                      List<Long> totalRequests, int errors, double[] xData, double[] yData) {
         this.name = name;
         this.histogram = histogram;
         this.firstRecordedTime = firstRecordedTime;
@@ -48,7 +50,7 @@ public class Statistics {
             this.lastRecordedTime = stats.lastRecordedTime;
         }
         this.histogram.add(stats.getHistogram());
-        this.totalRequests += stats.getTotalRequests();
+        this.totalRequests.addAll(stats.getTotalRequests());
         this.errors += stats.errors;
         this.xDataList.add(this.xData);
         this.yDataList.add(this.yData);
@@ -58,29 +60,27 @@ public class Statistics {
         return this.histogram;
     }
 
-    public long getTotalRequests() {
+    public List<Long> getTotalRequests() {
         return this.totalRequests;
     }
 
     public void printStatistics() {
-        double toMs = 1_000_000.0;
-        long duration = this.lastRecordedTime - this.firstRecordedTime;
         System.out.println("Task: " + this.name);
         System.out.println("\t======= Response time =======");
-        System.out.println("\t50thPercentile(ms): " + this.histogram.getValueAtPercentile(50) / toMs);
-        System.out.println("\t90thPercentile(ms): " + this.histogram.getValueAtPercentile(90) / toMs);
-        System.out.println("\t95thPercentile(ms): " + this.histogram.getValueAtPercentile(95) / toMs);
-        System.out.println("\t99thPercentile(ms): " + this.histogram.getValueAtPercentile(99) / toMs);
-        System.out.println("\t99.9thPercentile(ms): " + this.histogram.getValueAtPercentile(99.9) / toMs);
-        System.out.println("\t99.99thPercentile(ms): " + this.histogram.getValueAtPercentile(99.99) / toMs);
+        System.out.println("\t50thPercentile(ms): " + this.histogram.getValueAtPercentile(50) / NANO_PER_MS);
+        System.out.println("\t90thPercentile(ms): " + this.histogram.getValueAtPercentile(90) / NANO_PER_MS);
+        System.out.println("\t95thPercentile(ms): " + this.histogram.getValueAtPercentile(95) / NANO_PER_MS);
+        System.out.println("\t99thPercentile(ms): " + this.histogram.getValueAtPercentile(99) / NANO_PER_MS);
+        System.out.println("\t99.9thPercentile(ms): " + this.histogram.getValueAtPercentile(99.9) / NANO_PER_MS);
+        System.out.println("\t99.99thPercentile(ms): " + this.histogram.getValueAtPercentile(99.99) / NANO_PER_MS);
         System.out.println("\t======== Info ========");
-        System.out.println("\tMin(ms): " + (this.histogram.getMinValue() / toMs));
-        System.out.println("\tMax(ms): " + (this.histogram.getMaxValue() / toMs));
-        System.out.println("\tMean(ms): " + (this.histogram.getMean() / toMs));
-        System.out.println("\tStd Dev(ms): " + (this.histogram.getStdDeviation() / toMs));
+        System.out.println("\tMin(ms): " + (this.histogram.getMinValue() / NANO_PER_MS));
+        System.out.println("\tMax(ms): " + (this.histogram.getMaxValue() / NANO_PER_MS));
+        System.out.println("\tMean(ms): " + (this.histogram.getMean() / NANO_PER_MS));
+        System.out.println("\tStd Dev(ms): " + (this.histogram.getStdDeviation() / NANO_PER_MS));
         System.out.println("\tTotal requests: " + totalRequests);
         System.out.println("\tTotal errors: " + errors);
-        System.out.println("\tDuration(sec): " + (duration / 1000));
+        System.out.println("\tDuration(sec): " + this.duration());
         System.out.println("\t---");
     }
 
@@ -117,5 +117,15 @@ public class Statistics {
                 .fill(TO_ZERO_Y)
                 .build();
         return new PlotData(xData, yData, trace);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int duration() {
+        long elapsedTime = this.lastRecordedTime - this.firstRecordedTime;
+        double seconds = (double)elapsedTime / 1_000_000_000.0;
+        return (int) seconds;
     }
 }

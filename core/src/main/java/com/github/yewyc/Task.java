@@ -8,19 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.github.yewyc.Statistics.NANO_PER_MS;
+
 public abstract class Task implements Serializable {
 
     private static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     private static final int numberOfSignificantValueDigits = 3;
-    private static final long NANO_PER_MS = 1_000_000;
 
     private String id;
     private final String name;
     private Recorder recorder;
     private List<Histogram> histograms;
-    // used to control when the test started
-    private long firstRecordedTime = 0;
-    private long lastRecordedTime = 0;
+    private boolean started = false;
     private long lastRecordedTimeForGroupingHistograms = 0;
     private int errorCount = 0;
     // if we wish to track per time bucket - current is second
@@ -45,10 +44,9 @@ public abstract class Task implements Serializable {
 
     public void recordValue(long elapsedTimeNs, TaskStatus taskStatus) {
         // used to group histograms by second - right now second is fixed
-        // when started
         long now = System.currentTimeMillis();
-        if (this.firstRecordedTime == 0) {
-            this.firstRecordedTime = now;
+        if (!this.started) {
+            this.started = true;
             this.lastRecordedTimeForGroupingHistograms = now;
         } else {
             long elapsedTimeForGroupingHistagrams = now - this.lastRecordedTimeForGroupingHistograms;
@@ -65,7 +63,6 @@ public abstract class Task implements Serializable {
         if (TaskStatus.FAILED.equals(taskStatus)) {
             this.errorCount++;
         }
-        this.lastRecordedTime = now;
     }
 
     public void setId(String id) {
@@ -82,32 +79,27 @@ public abstract class Task implements Serializable {
         return this.id;
     }
 
-    public Statistics stats() {
+    public Statistics stats(long start, long end) {
         Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
-        long totalRequests = 0;
+        List<Long> totalRequests = new ArrayList<>();
         double[] xData;
         double[] yData;
         // too fast
         if (this.histograms.isEmpty()) {
-            Histogram localHistogram = this.recorder.getIntervalHistogram();
-            latencyHistogram.add(localHistogram);
-            totalRequests = localHistogram.getTotalCount();
-            xData = new double[1];
-            yData = new double[1];
-            xData[0] = 1.0;
-            yData[0] = this.recorder.getIntervalHistogram().getMean() / NANO_PER_MS;
-        } else {
-            xData = new double[this.histograms.size()];
-            yData = new double[this.histograms.size()];
-            for (int i = 0; i < this.histograms.size(); i++) {
-                Histogram intervalHistogram = this.histograms.get(i);
-                latencyHistogram.add(intervalHistogram);
-                totalRequests += intervalHistogram.getTotalCount();
-                xData[i] = (double) i + 1;
-                yData[i] = intervalHistogram.getMean() / NANO_PER_MS;
-            }
+            this.histograms.add(this.recorder.getIntervalHistogram());
         }
-        return new Statistics(this.name, latencyHistogram, this.firstRecordedTime, this.lastRecordedTime, totalRequests,
+
+        xData = new double[this.histograms.size()];
+        yData = new double[this.histograms.size()];
+        for (int i = 0; i < this.histograms.size(); i++) {
+            Histogram intervalHistogram = this.histograms.get(i);
+            latencyHistogram.add(intervalHistogram);
+            totalRequests.add(intervalHistogram.getTotalCount());
+            xData[i] = (double) i + 1;
+            yData[i] = intervalHistogram.getMean() / NANO_PER_MS;
+        }
+
+        return new Statistics(this.name, latencyHistogram, start, end, totalRequests,
                 this.errors.stream().mapToInt(Integer::intValue).sum(), xData, yData);
     }
 }

@@ -19,6 +19,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class Benchmark implements Closeable {
 
@@ -35,11 +36,11 @@ public class Benchmark implements Closeable {
     private final Map<String, Statistics> taskMap = new HashMap<>();
 
     public Benchmark(long duration, int threads) {
-        this(duration, threads, Model.CLOSED_MODEL.value, (long) (duration * 0.2), false);
+        this(duration, threads, Model.CLOSED_MODEL.value, 0, false);
     }
 
     public Benchmark(long duration, int threads, int rate) {
-        this(duration, threads, rate, (long) (duration * 0.2), false);
+        this(duration, threads, rate, 0, false);
     }
 
     /**
@@ -52,9 +53,6 @@ public class Benchmark implements Closeable {
     public Benchmark(long duration, int threads, int rate, long warmUpDuration, boolean recordWarmUp) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
-        }
-        if (warmUpDuration <= 0) {
-            throw new RuntimeException("warmUpTimeSec must be greater than 0");
         }
         this.threads = threads;
         this.duration = duration;
@@ -84,38 +82,40 @@ public class Benchmark implements Closeable {
         }
 
         log.info("Starting the benchmark");
-        List<Future<List<InstanceTask>>> tasks = new ArrayList<>();
+        List<Future<RunnableResult>> tasks = new ArrayList<>();
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
             for (int i = 0; i < this.threads; i++) {
-                Callable<List<InstanceTask>> task = new RunnableTask(
+                Callable<RunnableResult> task = new RunnableTask(
                         intervalNs,
                         this.weightTasks,
                         TimeUnit.SECONDS.toNanos(this.warmUpDuration),
                         TimeUnit.SECONDS.toNanos(this.duration),
                         this.recordWarmUp
                 );
-                Future<List<InstanceTask>> futureTask = executor.submit(task);
+                Future<RunnableResult> futureTask = executor.submit(task);
                 tasks.add(futureTask);
             }
             log.info("Waiting for tasks to complete");
-            List<InstanceTask> executedTasks = new ArrayList<>();
-            for (Future<List<InstanceTask>> future : tasks) {
-                List<InstanceTask> result;
+            List<RunnableResult> executedTasks = new ArrayList<>();
+            for (Future<RunnableResult> future : tasks) {
+                RunnableResult result;
                 try {
                     result = future.get();
                 } catch (Exception e) {
                     throw new RuntimeException("Benchmark stopped", e);
                 }
-                executedTasks.addAll(result);
+                executedTasks.add(result);
             }
             log.info("Merging tasks stats");
             // each task as an id
-            for (InstanceTask instanceTask : executedTasks) {
-                Task task = instanceTask.getTask();
-                if (this.taskMap.containsKey(task.getId())) {
-                    this.taskMap.get(task.getId()).merge(task.stats());
-                } else {
-                    this.taskMap.put(task.getId(), task.stats());
+            for (RunnableResult result : executedTasks) {
+                for (InstanceTask instanceTask : result.getInstanceTasks()) {
+                    Task task = instanceTask.getTask();
+                    if (this.taskMap.containsKey(task.getId())) {
+                        this.taskMap.get(task.getId()).merge(task.stats(result.getStart(), result.getEnd()));
+                    } else {
+                        this.taskMap.put(task.getId(), task.stats(result.getStart(), result.getEnd()));
+                    }
                 }
             }
         } // The executor automatically shuts down here
@@ -124,11 +124,16 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark generateReport() {
+        this.generateReport(Statistics::printStatistics);
+        return this;
+    }
+
+    public Benchmark generateReport(Consumer<Statistics> consumer) {
         if (this.taskMap.isEmpty()) {
             throw new RuntimeException("No tasks have been executed");
         }
         for (Statistics stats : this.taskMap.values()) {
-            stats.printStatistics();
+            consumer.accept(stats);
         }
         return this;
     }

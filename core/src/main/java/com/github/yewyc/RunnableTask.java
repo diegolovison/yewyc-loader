@@ -9,7 +9,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import static com.github.yewyc.CumulativeDistributionFunction.cdfChoice;
 
-public class RunnableTask implements Callable<List<InstanceTask>> {
+public class RunnableTask implements Callable<RunnableResult> {
 
     private final long intervalNs;
     private final List<WeightTask> weightTasks;
@@ -36,7 +36,7 @@ public class RunnableTask implements Callable<List<InstanceTask>> {
     }
 
     @Override
-    public List<InstanceTask> call() {
+    public RunnableResult call() {
 
         // initialize
         List<InstanceTask> localWeightTasks = new ArrayList<>(this.weightTasks.size());
@@ -47,6 +47,7 @@ public class RunnableTask implements Callable<List<InstanceTask>> {
 
         int i = 0;
         long start = System.nanoTime();
+        long end;
 
         while (true) {
 
@@ -70,9 +71,9 @@ public class RunnableTask implements Callable<List<InstanceTask>> {
             }
 
             TaskStatus taskStatus = task.run();
-            long end = System.nanoTime();
+            end = System.nanoTime();
 
-            boolean isWarmUpPhase = (end - start) < this.warmUpDurationNs;
+            boolean isWarmUpPhase = this.warmUpDurationNs > 0 && (end - start) < this.warmUpDurationNs;
             if (isWarmUpPhase) {
                 if (this.recordWarmUp) {
                     task.recordValue(end - intendedTime, taskStatus);
@@ -86,6 +87,6 @@ public class RunnableTask implements Callable<List<InstanceTask>> {
                 break;
             }
         }
-        return localWeightTasks;
+        return new RunnableResult(start, end, localWeightTasks);
     }
 }
