@@ -103,10 +103,8 @@ public class Benchmark implements Closeable {
                 List<InstanceTask> result;
                 try {
                     result = future.get();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException("Benchmark stopped", e);
                 }
                 executedTasks.addAll(result);
             }
