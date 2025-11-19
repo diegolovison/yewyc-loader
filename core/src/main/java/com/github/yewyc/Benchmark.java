@@ -22,10 +22,25 @@ public class Benchmark implements Closeable {
 
     private final int threads;
     private final long duration;
-    protected final long intervalNs;
+    private final int rate;
     private final long warmUpDuration;
     private final boolean recordWarmUp;
 
+    public Benchmark(long duration, int threads) {
+        this(duration, -1, threads, (long) (duration * 0.2));
+    }
+
+    public Benchmark(long duration, int threads, long warmUpDuration) {
+        this(duration, -1, threads, warmUpDuration);
+    }
+
+    /**
+     *
+     * @param duration
+     * @param rate When rate is -1 it will be a closed model. Use the constructor without the rate parameter for convenience
+     * @param threads
+     * @param warmUpDuration
+     */
     public Benchmark(long duration, int rate, int threads, long warmUpDuration) {
         this(duration, rate, threads, warmUpDuration, false);
     }
@@ -34,15 +49,12 @@ public class Benchmark implements Closeable {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
-        if (rate <= 0) {
-            throw new RuntimeException("rate must be greater than 0");
-        }
         if (warmUpDuration <= 0) {
             throw new RuntimeException("warmUpTimeSec must be greater than 0");
         }
         this.threads = threads;
         this.duration = duration;
-        this.intervalNs = 1000000000 / (rate / threads);
+        this.rate = rate;
         this.warmUpDuration = warmUpDuration;
         this.recordWarmUp = recordWarmUp;
     }
@@ -60,6 +72,13 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark start() {
+        long intervalNs;
+        if (this.rate == Model.CLOSED_MODEL.value) {
+            intervalNs = Model.CLOSED_MODEL.value;
+        } else {
+            intervalNs = 1000000000 / (this.rate / this.threads);
+        }
+
         double[] probabilities = this.weightTasks.stream()
                 .mapToDouble(WeightTask::getProbability)
                 .toArray();
@@ -73,7 +92,7 @@ public class Benchmark implements Closeable {
             for (int i = 0; i < this.threads; i++) {
                 executor.submit(
                         new RunnableTask(
-                                this.intervalNs,
+                                intervalNs,
                                 this.weightTasks,
                                 TimeUnit.SECONDS.toNanos(this.warmUpDuration),
                                 TimeUnit.SECONDS.toNanos(this.duration),
@@ -89,7 +108,7 @@ public class Benchmark implements Closeable {
 
     public Benchmark generateReport() {
         for (WeightTask weightTask : this.weightTasks) {
-            weightTask.getTask().report(this.intervalNs);
+            weightTask.getTask().report();
         }
         return this;
     }

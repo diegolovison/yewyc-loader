@@ -80,7 +80,7 @@ public class DistributedBenchmark extends Benchmark {
                     System.out.println("Node: " + remoteTask.getSource());
                     System.out.println("--------------------------------");
                     for (WeightTask weightTask : this.weightTasks) {
-                        weightTask.getTask().report(this.intervalNs);
+                        weightTask.getTask().report();
                     }
                     System.out.println();
                     System.out.println();

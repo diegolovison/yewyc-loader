@@ -10,6 +10,10 @@ public class WeightTask {
     private double probability;
     private Task instance;
 
+    public WeightTask(Callable<Task> task) {
+        this(task, 1.0);
+    }
+
     public WeightTask(Callable<Task> task, double probability) {
         this.task = task;
         this.probability = probability;

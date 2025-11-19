@@ -6,14 +6,10 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 public class JavaHttpClientTask {
 
@@ -90,25 +86,5 @@ public class JavaHttpClientTask {
         }
 
         return LocalTask::new;
-    }
-
-    private static abstract class HttpTask extends Task {
-
-        HttpClient client;
-
-        HttpTask(String name, Duration connectTimeout, int maxConnections) {
-            super(name);
-            ThreadFactory threadFactory = r -> {
-                Thread t = new Thread(r);
-                t.setName("HttpClient-Worker-" + t.getId());
-                return t;
-            };
-            ExecutorService executor = Executors.newFixedThreadPool(maxConnections, threadFactory);
-
-            this.client = HttpClient.newBuilder()
-                    .connectTimeout(connectTimeout)
-                    .executor(executor)
-                    .build();
-        }
     }
 }

@@ -20,10 +20,11 @@ public abstract class Task implements Serializable {
     private static final long NANO_PER_MS = 1_000_000;
     private final String name;
     private Recorder recorder;
-    private long blockedTime;
     private List<Histogram> histograms;
-    private long firstRecorderData = 0;
-    private long lastRecordData = 0;
+    // used to control when the test started
+    private long firstRecordedTime = 0;
+    private long lastRecordedTime = 0;
+    private long lastRecordedTimeForGroupingHistograms = 0;
     private int errorCount = 0;
     private List<Integer> errors;
 
@@ -35,8 +36,6 @@ public abstract class Task implements Serializable {
         // we are measuring in nanoseconds. if a value stored is greater than a minute, it will auto-resize
         this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
         this.histograms = new ArrayList<>();
-        this.blockedTime = 0;
-
         this.errors = new ArrayList<>();
     }
 
@@ -46,41 +45,32 @@ public abstract class Task implements Serializable {
 
     public abstract TaskStatus run();
 
-    /**
-     *
-     * @param when       value in ns
-     * @param value      value in ns
-     * @param taskStatus
-     */
-    public void recordValue(long when, long value, TaskStatus taskStatus) {
-        if (this.firstRecorderData == 0) {
-            this.firstRecorderData = when;
-        }
-        long durationNanos = when - this.lastRecordData;
-        boolean hasOneSecondElapsed = durationNanos >= NANOS_PER_SECOND;
-        if (hasOneSecondElapsed) {
-            if (this.lastRecordData != 0) {
+    public void recordValue(long elapsedTimeNs, TaskStatus taskStatus) {
+        // used to group histograms by second - right now second is fixed
+        // when started
+        long now = System.currentTimeMillis();
+        if (this.firstRecordedTime == 0) {
+            this.firstRecordedTime = now;
+            this.lastRecordedTimeForGroupingHistograms = now;
+        } else {
+            long elapsedTimeForGroupingHistagrams = now - this.lastRecordedTimeForGroupingHistograms;
+            if (elapsedTimeForGroupingHistagrams >= 1000) {
                 this.histograms.add(recorder.getIntervalHistogram());
                 this.errors.add(this.errorCount);
                 this.errorCount = 0;
+                this.lastRecordedTimeForGroupingHistograms = now;
             }
-            this.lastRecordData = when;
         }
-        this.recorder.recordValue(value);
+
+        // track
+        this.recorder.recordValue(elapsedTimeNs);
         if (TaskStatus.FAILED.equals(taskStatus)) {
             this.errorCount++;
         }
+        this.lastRecordedTime = now;
     }
 
-    /**
-     *
-     * @param value ns
-     */
-    public void addBlockedTime(long value) {
-        this.blockedTime += value;
-    }
-
-    public void report(long intervalNs) {
+    public void report() {
         Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
         long totalRequests = 0;
         // too fast
@@ -95,7 +85,7 @@ public abstract class Task implements Serializable {
             }
         }
 
-        long duration = (this.lastRecordData - this.firstRecorderData) / NANOS_PER_SECOND;
+        long duration = (this.lastRecordedTime - this.firstRecordedTime) / NANOS_PER_SECOND;
         System.out.println("Task: " + this.getName());
         System.out.println("\t======= Latency =======");
         System.out.println("\tAverageLatency(ns): " + latencyHistogram.getMean());
@@ -113,9 +103,7 @@ public abstract class Task implements Serializable {
         System.out.println("\tTotal errors: " + this.errors.stream().mapToInt(Integer::intValue).sum());
         System.out.println("\tDuration: " + duration + " sec");
         System.out.println("\tMean: " + (latencyHistogram.getMean() / 1_000_000.0) + " ms");
-        System.out.println("\tBlocked time: " + (blockedTime / 1_000_000.0) + " ms");
         System.out.println("\tStd Dev: " + (latencyHistogram.getStdDeviation() / 1_000_000.0) + " ms");
-        System.out.println("\tYou can " + ((latencyHistogram.getMean() < intervalNs) ? "increase" : "decrease") + " the opsPerSec by a factor of: " + String.format("%.2f", intervalNs / latencyHistogram.getMean()));
         System.out.println("\t---");
     }
 
