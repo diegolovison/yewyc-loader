@@ -11,24 +11,24 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 public class JavaHttpClientTask {
 
     private static final Logger LOGGER = Logger.getLogger(JavaHttpClientTask.class);
 
-    public static Callable<Task> task1(Duration connectTimeout) {
+    public static Callable<Task> task1(Duration connectTimeout, int maxConnections) {
 
-        class LocalTask extends Task {
+        class LocalTask extends HttpTask {
 
-            private HttpClient client;
             private HttpRequest request;
             private HttpResponse.BodyHandler<String> handler;
 
             public LocalTask() {
-                super("http-request-hello");
-                this.client = HttpClient.newBuilder()
-                        .connectTimeout(connectTimeout)
-                        .build();
+                super("http-request-hello", connectTimeout, maxConnections);
+
                 this.request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello"))
                         .GET()
@@ -56,19 +56,15 @@ public class JavaHttpClientTask {
         return LocalTask::new;
     }
 
-    public static Callable<Task> task2(Duration connectTimeout) {
+    public static Callable<Task> task2(Duration connectTimeout, int maxConnections) {
 
-        class LocalTask extends Task {
+        class LocalTask extends HttpTask {
 
-            private HttpClient client;
             private HttpRequest request;
             private HttpResponse.BodyHandler<String> handler;
 
             public LocalTask() {
-                super("http-request-my-name");
-                this.client = HttpClient.newBuilder()
-                        .connectTimeout(connectTimeout)
-                        .build();
+                super("http-request-my-name", connectTimeout, maxConnections);
                 this.request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/hello/greeting/my-name"))
                         .GET()
@@ -94,5 +90,25 @@ public class JavaHttpClientTask {
         }
 
         return LocalTask::new;
+    }
+
+    private static abstract class HttpTask extends Task {
+
+        HttpClient client;
+
+        HttpTask(String name, Duration connectTimeout, int maxConnections) {
+            super(name);
+            ThreadFactory threadFactory = r -> {
+                Thread t = new Thread(r);
+                t.setName("HttpClient-Worker-" + t.getId());
+                return t;
+            };
+            ExecutorService executor = Executors.newFixedThreadPool(maxConnections, threadFactory);
+
+            this.client = HttpClient.newBuilder()
+                    .connectTimeout(connectTimeout)
+                    .executor(executor)
+                    .build();
+        }
     }
 }
