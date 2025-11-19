@@ -15,6 +15,7 @@ import java.util.concurrent.Callable;
 public class Wrk {
 
     static void main() {
+
         int timeout = 2;
         int threads = 2;
         int connections = 10;

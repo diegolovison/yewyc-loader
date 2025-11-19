@@ -10,7 +10,7 @@ public class JavaHttpClientPerfComplexTest extends JavaHttpClientSimplePerfTest 
     public static void main(String[] args) {
         Duration connectTimeout = Duration.ofSeconds(5);
         int maxConnections = 10;
-        try (Benchmark benchmark = new Benchmark(10, 100, 1, 5)) {
+        try (Benchmark benchmark = new Benchmark(60, 10, 1000)) {
             benchmark
                     .addTask(
                             new WeightTask(task1(connectTimeout, maxConnections), 0.5),

@@ -24,8 +24,10 @@ public class DistributedBenchmark extends Benchmark {
     private final List<RemoteTask> remoteTasks = new ArrayList<>();
     private boolean gatheredReportData = false;
 
+    // todo rename order and rename names
     public DistributedBenchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, int expectedNumberOfNodes) {
-        super(timeSec, opsPerSec, virtualThreads, warmUpTimeSec);
+        // todo fix super
+        super(timeSec, opsPerSec);
         this.expectedNumberOfNodes = expectedNumberOfNodes;
         this.reportCountDownLatch = new CountDownLatch(this.expectedNumberOfNodes - 1);
 

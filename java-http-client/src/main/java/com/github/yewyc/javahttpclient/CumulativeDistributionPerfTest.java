@@ -42,7 +42,7 @@ public class CumulativeDistributionPerfTest {
 
         CumulativeDistributionPerfTest test = new CumulativeDistributionPerfTest();
 
-        try (Benchmark benchmark = new Benchmark(60, 100, 1, 60)) {
+        try (Benchmark benchmark = new Benchmark(60, 10, 1000)) {
             benchmark
                     .addTask(test.getWeightTasks())
                     .start()

@@ -35,11 +35,11 @@ public class Benchmark implements Closeable {
     private final Map<String, Statistics> taskMap = new HashMap<>();
 
     public Benchmark(long duration, int threads) {
-        this(duration, -1, threads, (long) (duration * 0.2));
+        this(duration, threads, Model.CLOSED_MODEL.value, (long) (duration * 0.2), false);
     }
 
-    public Benchmark(long duration, int threads, long warmUpDuration) {
-        this(duration, -1, threads, warmUpDuration);
+    public Benchmark(long duration, int threads, int rate) {
+        this(duration, threads, rate, (long) (duration * 0.2), false);
     }
 
     /**
@@ -49,11 +49,7 @@ public class Benchmark implements Closeable {
      * @param threads
      * @param warmUpDuration
      */
-    public Benchmark(long duration, int rate, int threads, long warmUpDuration) {
-        this(duration, rate, threads, warmUpDuration, false);
-    }
-
-    public Benchmark(long duration, int rate, int threads, long warmUpDuration, boolean recordWarmUp) {
+    public Benchmark(long duration, int threads, int rate, long warmUpDuration, boolean recordWarmUp) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
