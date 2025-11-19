@@ -80,7 +80,8 @@ public class DistributedBenchmark extends Benchmark {
                     System.out.println("Node: " + remoteTask.getSource());
                     System.out.println("--------------------------------");
                     for (WeightTask weightTask : this.weightTasks) {
-                        weightTask.getTask().report();
+                        // todo
+                        //weightTask.getTask().report();
                     }
                     System.out.println();
                     System.out.println();
@@ -109,17 +110,22 @@ public class DistributedBenchmark extends Benchmark {
             // TODO the data must be sorted by X before ploting
             for (RemoteTask remoteTask : this.remoteTasks) {
                 for (WeightTask weightTask : this.weightTasks) {
-                    Task task = weightTask.getTask();
-                    PlotData plotData = task.plot(0);
+                    // todo
+                    //Task task = weightTask.getTask();
+                    Task task = null;
+                    // PlotData plotData = task.plot(0);
+                    PlotData plotData = null;
                     if (xMap.containsKey(task.getName())) {
                         List<Double> localXMap = xMap.get(task.getName());
                         List<Double> localYMap = yMap.get(task.getName());
-                        localXMap.addAll(Arrays.asList(plotData.xData));
-                        localYMap.addAll(Arrays.asList(plotData.yData));
+                        // todo
+                        // localXMap.addAll(Arrays.asList(plotData.xData));
+                        // localYMap.addAll(Arrays.asList(plotData.yData));
                     } else {
                         names.add(task.getName());
-                        xMap.put(task.getName(), Arrays.asList(plotData.xData));
-                        yMap.put(task.getName(), Arrays.asList(plotData.yData));
+                        // todo
+                        // xMap.put(task.getName(), Arrays.asList(plotData.xData));
+                        // yMap.put(task.getName(), Arrays.asList(plotData.yData));
                     }
                 }
             }

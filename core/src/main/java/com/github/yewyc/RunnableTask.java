@@ -1,19 +1,20 @@
 package com.github.yewyc;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.LockSupport;
 
 import static com.github.yewyc.CumulativeDistributionFunction.cdfChoice;
 
-public class RunnableTask implements Runnable {
+public class RunnableTask implements Callable<List<InstanceTask>> {
 
     private final long intervalNs;
     private final List<WeightTask> weightTasks;
     private final long totalDurationNs;
     private final double[] probabilities;
     private final long warmUpDurationNs;
-    private final long steadyStateDurationNs;
     private final boolean recordWarmUp;
 
     public RunnableTask(long intervalNs, List<WeightTask> weightTasks, long warmUpDurationNs,
@@ -21,18 +22,19 @@ public class RunnableTask implements Runnable {
         this.intervalNs = intervalNs;
         this.weightTasks = weightTasks;
         this.warmUpDurationNs = warmUpDurationNs;
-        this.steadyStateDurationNs = steadyStateDurationNs;
-        this.totalDurationNs = this.warmUpDurationNs +  this.steadyStateDurationNs;
+        this.totalDurationNs = this.warmUpDurationNs +  steadyStateDurationNs;
         this.probabilities = probabilities;
         this.recordWarmUp = recordWarmUp;
     }
 
     @Override
-    public void run() {
+    public List<InstanceTask> call() {
 
         // initialize
+        List<InstanceTask> localWeightTasks = new ArrayList<>(this.weightTasks.size());
         for (WeightTask task : weightTasks) {
-            task.initialize();
+            InstanceTask instanceTask = new InstanceTask(task.initialize(), task.getProbability());
+            localWeightTasks.add(instanceTask);
         }
 
         int i = 0;
@@ -52,11 +54,11 @@ public class RunnableTask implements Runnable {
             }
 
             Task task;
-            if (this.weightTasks.size() > 1) {
+            if (localWeightTasks.size() > 1) {
                 int prob = cdfChoice(this.probabilities);
-                task = this.weightTasks.get(prob).getTask();
+                task = localWeightTasks.get(prob).getTask();
             } else {
-                task = this.weightTasks.get(0).getTask();
+                task = localWeightTasks.getFirst().getTask();
             }
 
             TaskStatus taskStatus = task.run();
@@ -76,5 +78,6 @@ public class RunnableTask implements Runnable {
                 break;
             }
         }
+        return localWeightTasks;
     }
 }

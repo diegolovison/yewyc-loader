@@ -2,22 +2,19 @@ package com.github.yewyc;
 
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
-import tech.tablesaw.plotly.traces.ScatterTrace;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-
-import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public abstract class Task implements Serializable {
 
     private static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     private static final int numberOfSignificantValueDigits = 3;
-    private static final long NANOS_PER_SECOND = 1_000_000_000L;
     private static final long NANO_PER_MS = 1_000_000;
+
+    private String id;
     private final String name;
     private Recorder recorder;
     private List<Histogram> histograms;
@@ -26,6 +23,7 @@ public abstract class Task implements Serializable {
     private long lastRecordedTime = 0;
     private long lastRecordedTimeForGroupingHistograms = 0;
     private int errorCount = 0;
+    // if we wish to track per time bucket - current is second
     private List<Integer> errors;
 
     public Task(String name) {
@@ -70,59 +68,46 @@ public abstract class Task implements Serializable {
         this.lastRecordedTime = now;
     }
 
-    public void report() {
+    public void setId(String id) {
+        if (this.id != null) {
+            throw new IllegalStateException("Id cannot be modified");
+        }
+        this.id = id;
+    }
+
+    public String getId() {
+        if (this.id == null) {
+            throw new IllegalStateException("Id cannot be null");
+        }
+        return this.id;
+    }
+
+    public Statistics stats() {
         Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
         long totalRequests = 0;
+        double[] xData;
+        double[] yData;
         // too fast
         if (this.histograms.isEmpty()) {
             Histogram localHistogram = this.recorder.getIntervalHistogram();
             latencyHistogram.add(localHistogram);
             totalRequests = localHistogram.getTotalCount();
+            xData = new double[1];
+            yData = new double[1];
+            xData[0] = 1.0;
+            yData[0] = this.recorder.getIntervalHistogram().getMean() / NANO_PER_MS;
         } else {
-            for (Histogram intervalHistogram : this.histograms) {
+            xData = new double[this.histograms.size()];
+            yData = new double[this.histograms.size()];
+            for (int i = 0; i < this.histograms.size(); i++) {
+                Histogram intervalHistogram = this.histograms.get(i);
                 latencyHistogram.add(intervalHistogram);
                 totalRequests += intervalHistogram.getTotalCount();
+                xData[i] = (double) i + 1;
+                yData[i] = intervalHistogram.getMean() / NANO_PER_MS;
             }
         }
-
-        long duration = (this.lastRecordedTime - this.firstRecordedTime) / NANOS_PER_SECOND;
-        System.out.println("Task: " + this.getName());
-        System.out.println("\t======= Latency =======");
-        System.out.println("\tAverageLatency(ns): " + latencyHistogram.getMean());
-        System.out.println("\tMinLatency(ns): " + latencyHistogram.getMinValue());
-        System.out.println("\tMaxLatency(ns): " + latencyHistogram.getMaxValue());
-        System.out.println("\t50thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(50) / 1_000_000.0);
-        System.out.println("\t90thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(90) / 1_000_000.0);
-        System.out.println("\t95thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(95) / 1_000_000.0);
-        System.out.println("\t99thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(99) / 1_000_000.0);
-        System.out.println("\t99.9thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(99.9) / 1_000_000.0);
-        System.out.println("\t99.99thPercentileLatency(ms): " + latencyHistogram.getValueAtPercentile(99.99) / 1_000_000.0);
-        System.out.println("\t======== Info ========");
-        System.out.println("\tTotal requests: " + totalRequests);
-        System.out.println("\tTotal histograms: " + this.histograms.size());
-        System.out.println("\tTotal errors: " + this.errors.stream().mapToInt(Integer::intValue).sum());
-        System.out.println("\tDuration: " + duration + " sec");
-        System.out.println("\tMean: " + (latencyHistogram.getMean() / 1_000_000.0) + " ms");
-        System.out.println("\tStd Dev: " + (latencyHistogram.getStdDeviation() / 1_000_000.0) + " ms");
-        System.out.println("\t---");
-    }
-
-    public PlotData plot(int chartIndex) {
-        Double[] xData = new Double[this.histograms.size()];
-        Double[] yData = new Double[this.histograms.size()];
-        for (int i = 0; i < xData.length; i++) {
-            Histogram intervalHistogram = this.histograms.get(i);
-            xData[i] = (double) i + 1;
-            yData[i] = intervalHistogram.getMean() / NANO_PER_MS;
-        }
-        ScatterTrace trace = ScatterTrace.builder(
-                        Stream.of(xData).mapToDouble(Double::doubleValue).toArray(),
-                        Stream.of(yData).mapToDouble(Double::doubleValue).toArray())
-                .mode(ScatterTrace.Mode.LINE)
-                .name(this.getName())
-                .xAxis("x" + chartIndex).yAxis("y" + chartIndex)
-                .fill(TO_ZERO_Y)
-                .build();
-        return new PlotData(xData, yData, trace);
+        return new Statistics(this.name, latencyHistogram, this.firstRecordedTime, this.lastRecordedTime, totalRequests,
+                this.errors.stream().mapToInt(Integer::intValue).sum(), xData, yData);
     }
 }

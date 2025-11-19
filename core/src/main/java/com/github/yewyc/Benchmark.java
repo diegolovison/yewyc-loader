@@ -11,7 +11,13 @@ import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class Benchmark implements Closeable {
@@ -25,6 +31,8 @@ public class Benchmark implements Closeable {
     private final int rate;
     private final long warmUpDuration;
     private final boolean recordWarmUp;
+
+    private final Map<String, Statistics> taskMap = new HashMap<>();
 
     public Benchmark(long duration, int threads) {
         this(duration, -1, threads, (long) (duration * 0.2));
@@ -88,18 +96,42 @@ public class Benchmark implements Closeable {
         }
 
         log.info("Starting the benchmark");
+        List<Future<List<InstanceTask>>> tasks = new ArrayList<>();
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
             for (int i = 0; i < this.threads; i++) {
-                executor.submit(
-                        new RunnableTask(
-                                intervalNs,
-                                this.weightTasks,
-                                TimeUnit.SECONDS.toNanos(this.warmUpDuration),
-                                TimeUnit.SECONDS.toNanos(this.duration),
-                                probabilities,
-                                this.recordWarmUp
-                        )
+                Callable<List<InstanceTask>> task = new RunnableTask(
+                        intervalNs,
+                        this.weightTasks,
+                        TimeUnit.SECONDS.toNanos(this.warmUpDuration),
+                        TimeUnit.SECONDS.toNanos(this.duration),
+                        probabilities,
+                        this.recordWarmUp
                 );
+                Future<List<InstanceTask>> futureTask = executor.submit(task);
+                tasks.add(futureTask);
+            }
+            log.info("Waiting for tasks to complete");
+            List<InstanceTask> executedTasks = new ArrayList<>();
+            for (Future<List<InstanceTask>> future : tasks) {
+                List<InstanceTask> result;
+                try {
+                    result = future.get();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+                executedTasks.addAll(result);
+            }
+            log.info("Merging tasks stats");
+            // each task as an id
+            for (InstanceTask instanceTask : executedTasks) {
+                Task task = instanceTask.getTask();
+                if (this.taskMap.containsKey(task.getId())) {
+                    this.taskMap.get(task.getId()).merge(task.stats());
+                } else {
+                    this.taskMap.put(task.getId(), task.stats());
+                }
             }
         } // The executor automatically shuts down here
         log.info("Benchmark finished");
@@ -107,8 +139,11 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark generateReport() {
-        for (WeightTask weightTask : this.weightTasks) {
-            weightTask.getTask().report();
+        if (this.taskMap.isEmpty()) {
+            throw new RuntimeException("No tasks have been executed");
+        }
+        for (Statistics stats : this.taskMap.values()) {
+            stats.printStatistics();
         }
         return this;
     }
@@ -117,9 +152,9 @@ public class Benchmark implements Closeable {
         List<Trace> traces = new ArrayList<>();
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
-        for (WeightTask weightTask : this.weightTasks) {
-            Task task = weightTask.getTask();
-            PlotData plotData = task.plot(i);
+        for (Statistics stats : this.taskMap.values()) {
+            // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
+            PlotData plotData = stats.plot(i);
             traces.add(plotData.trace);
             i += 1;
         }
@@ -129,9 +164,9 @@ public class Benchmark implements Closeable {
     protected Benchmark plot(List<Trace> traces) {
         if (traces.size() > 0) {
             Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
-            Layout layout = Layout.builder().width(1700).height(800).title("Latency report on milli second").grid(grid).build();
+            Layout layout = Layout.builder().width(1700).height(800).title("Response time mean(ms)").grid(grid).build();
             Figure figure = new Figure(layout, traces.stream().toArray(Trace[]::new));
-            Plot.show(figure, new File("/tmp/html.html"));
+            Plot.show(figure, new File("/tmp/report-" + UUID.randomUUID() + ".html"));
         }
         return this;
     }
