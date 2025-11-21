@@ -11,7 +11,6 @@
   <modules>
     <module>core</module>
       <module>java-http-client</module>
-      <module>okhttp-http-client</module>
       <module>http-server</module>
   </modules>
 
