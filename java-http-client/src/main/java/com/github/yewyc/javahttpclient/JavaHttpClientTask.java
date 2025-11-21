@@ -10,6 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 public class JavaHttpClientTask {
 
@@ -33,7 +34,7 @@ public class JavaHttpClientTask {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -45,7 +46,8 @@ public class JavaHttpClientTask {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -69,7 +71,7 @@ public class JavaHttpClientTask {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -81,7 +83,8 @@ public class JavaHttpClientTask {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 

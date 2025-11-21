@@ -6,6 +6,7 @@ import org.HdrHistogram.Recorder;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.yewyc.Statistics.NANO_PER_MS;
@@ -40,7 +41,9 @@ public abstract class Task implements Serializable {
         return this.name;
     }
 
-    public abstract TaskStatus run();
+    public abstract CompletableFuture<TaskStatus> submit();
+
+    public abstract void close();
 
     public void recordValue(long elapsedTimeNs, TaskStatus taskStatus) {
         // used to group histograms by second - right now second is fixed

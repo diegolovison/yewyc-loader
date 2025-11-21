@@ -3,7 +3,6 @@ package com.github.yewyc;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,6 +12,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -58,8 +58,8 @@ public class WrkMain {
 
         class LocalTask extends HttpTask {
 
-            private HttpRequest request;
-            private HttpResponse.BodyHandler<String> handler;
+            private final HttpRequest request;
+            private final HttpResponse.BodyHandler<String> handler;
 
             public LocalTask() {
                 super("test", connectTimeout, maxConnections);
@@ -72,19 +72,19 @@ public class WrkMain {
             }
 
             @Override
-            public TaskStatus run() {
-                TaskStatus localStatus;
-                try {
-                    HttpResponse<String> response = client.send(request, handler);
-                    if (response.statusCode() == 200) {
-                        localStatus = TaskStatus.SUCCESS;
-                    } else {
-                        localStatus = TaskStatus.FAILED;
-                    }
-                } catch (IOException | InterruptedException e) {
-                    localStatus = TaskStatus.FAILED;
-                }
-                return localStatus;
+            public CompletableFuture<TaskStatus> submit() {
+                CompletableFuture<HttpResponse<String>> responseAsync = client.sendAsync(request, handler);
+                return responseAsync
+                    .handle((response, ex) -> {
+                        final TaskStatus localStatus;
+                        // success
+                        if (ex == null && response.statusCode() == 200) {
+                            localStatus = TaskStatus.SUCCESS;
+                        } else {
+                            localStatus = TaskStatus.FAILED;
+                        }
+                        return localStatus;
+                    });
             }
         }
 
@@ -94,6 +94,7 @@ public class WrkMain {
     private static abstract class HttpTask extends Task {
 
         HttpClient client;
+        ExecutorService executor;
 
         HttpTask(String name, Duration connectTimeout, int maxConnections) {
             super(name);
@@ -102,12 +103,20 @@ public class WrkMain {
                 t.setName("HttpClient-Worker-" + t.getId());
                 return t;
             };
-            ExecutorService executor = Executors.newFixedThreadPool(maxConnections, threadFactory);
+            executor = Executors.newFixedThreadPool(maxConnections, threadFactory);
 
             this.client = HttpClient.newBuilder()
                     .connectTimeout(connectTimeout)
                     .executor(executor)
                     .build();
+        }
+
+        @Override
+        public void close() {
+            this.executor.shutdownNow();
+            this.executor.close();
+            this.client.shutdownNow();
+            this.client.close();
         }
     }
 

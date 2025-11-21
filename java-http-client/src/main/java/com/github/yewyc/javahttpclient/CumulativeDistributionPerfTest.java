@@ -11,6 +11,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 import static com.github.yewyc.CallableUtils.callTask;
 
@@ -84,12 +85,12 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.viewVehicle.run();
-                this.viewInsurance.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.viewVehicle.submit();
+                this.viewInsurance.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -113,12 +114,12 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.acceptQuoteWebSocket.run();
-                this.viewVehicle.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.acceptQuoteWebSocket.submit();
+                this.viewVehicle.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -143,12 +144,12 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.acceptQuote.run();
-                this.viewVehicle.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.acceptQuote.submit();
+                this.viewVehicle.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -170,11 +171,11 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.deleteVehicle.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.deleteVehicle.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -198,12 +199,12 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.addVehicle.run();
-                this.viewQuote.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.addVehicle.submit();
+                this.viewQuote.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -227,12 +228,12 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.viewUser.run();
-                this.updateUser.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.viewUser.submit();
+                this.updateUser.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -254,11 +255,11 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.viewUser.run();
-                this.logout.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.viewUser.submit();
+                this.logout.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -278,10 +279,10 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                this.login.run();
-                this.unregister.run();
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                this.login.submit();
+                this.unregister.submit();
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -296,8 +297,8 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -312,8 +313,8 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
-                return TaskStatus.SUCCESS;
+            public CompletableFuture<TaskStatus> submit() {
+                return CompletableFuture.supplyAsync(() -> TaskStatus.SUCCESS);
             }
         }
 
@@ -341,7 +342,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -353,7 +354,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -381,7 +383,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -393,7 +395,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -421,7 +424,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -433,7 +436,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -461,7 +465,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -473,7 +477,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -501,7 +506,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -513,7 +518,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -541,7 +547,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -553,7 +559,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -581,7 +588,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -593,7 +600,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -621,7 +629,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -633,7 +641,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -661,7 +670,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -673,7 +682,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -701,7 +711,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -713,7 +723,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -741,7 +752,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -753,7 +764,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 
@@ -781,7 +793,7 @@ public class CumulativeDistributionPerfTest {
             }
 
             @Override
-            public TaskStatus run() {
+            public CompletableFuture<TaskStatus> submit() {
                 TaskStatus localStatus;
                 try {
                     HttpResponse<String> response = client.send(request, handler);
@@ -793,7 +805,8 @@ public class CumulativeDistributionPerfTest {
                 } catch (IOException | InterruptedException e) {
                     localStatus = TaskStatus.FAILED;
                 }
-                return localStatus;
+                TaskStatus finalLocalStatus = localStatus;
+                return CompletableFuture.supplyAsync(() -> finalLocalStatus);
             }
         }
 

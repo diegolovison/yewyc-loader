@@ -85,7 +85,7 @@ public class Benchmark implements Closeable {
         List<Future<RunnableResult>> tasks = new ArrayList<>();
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
             for (int i = 0; i < this.threads; i++) {
-                Callable<RunnableResult> task = new RunnableTask(
+                Callable<RunnableResult> task = new RunnableTask(i,
                         intervalNs,
                         this.weightTasks,
                         TimeUnit.SECONDS.toNanos(this.warmUpDuration),
