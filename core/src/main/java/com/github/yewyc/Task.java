@@ -7,14 +7,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import static com.github.yewyc.Statistics.NANO_PER_MS;
 
 public abstract class Task implements Serializable {
 
-    private static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
-    private static final int numberOfSignificantValueDigits = 3;
+    static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
+    static final int numberOfSignificantValueDigits = 3;
 
     private String id;
     private final String name;
@@ -40,6 +39,8 @@ public abstract class Task implements Serializable {
     public String getName() {
         return this.name;
     }
+
+    public abstract void initialize(ExecutorService executor);
 
     public abstract CompletableFuture<TaskStatus> submit();
 
@@ -83,26 +84,6 @@ public abstract class Task implements Serializable {
     }
 
     public Statistics stats(long start, long end) {
-        Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
-        List<Long> totalRequests = new ArrayList<>();
-        double[] xData;
-        double[] yData;
-        // too fast
-        if (this.histograms.isEmpty()) {
-            this.histograms.add(this.recorder.getIntervalHistogram());
-        }
-
-        xData = new double[this.histograms.size()];
-        yData = new double[this.histograms.size()];
-        for (int i = 0; i < this.histograms.size(); i++) {
-            Histogram intervalHistogram = this.histograms.get(i);
-            latencyHistogram.add(intervalHistogram);
-            totalRequests.add(intervalHistogram.getTotalCount());
-            xData[i] = (double) i + 1;
-            yData[i] = intervalHistogram.getMean() / NANO_PER_MS;
-        }
-
-        return new Statistics(this.name, latencyHistogram, start, end, totalRequests,
-                this.errors.stream().mapToInt(Integer::intValue).sum(), xData, yData);
+        return new Statistics(this.name, start, end, histograms, errors);
     }
 }

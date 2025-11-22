@@ -27,7 +27,7 @@ public class DistributedBenchmark extends Benchmark {
     // todo rename order and rename names
     public DistributedBenchmark(long timeSec, int opsPerSec, int virtualThreads, long warmUpTimeSec, int expectedNumberOfNodes) {
         // todo fix super
-        super(timeSec, opsPerSec);
+        super(0, null, 0, 0, null, null, null);
         this.expectedNumberOfNodes = expectedNumberOfNodes;
         this.reportCountDownLatch = new CountDownLatch(this.expectedNumberOfNodes - 1);
 
@@ -46,7 +46,7 @@ public class DistributedBenchmark extends Benchmark {
     }
 
     @Override
-    public Benchmark start() {
+    public Benchmark start() throws InterruptedException {
 
         try {
             try {

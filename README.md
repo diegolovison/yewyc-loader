@@ -136,3 +136,13 @@ For distributed test use `DistributedMeasureLatency`
 ## Contributing
 
 [Contribution guidelines will be added here in the future.]
+
+# VM argument
+## Disable GC
+```
+-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
+```
+## Don't disable JIT
+```
+-Xint
+```

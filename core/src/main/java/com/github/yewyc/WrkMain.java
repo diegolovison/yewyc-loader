@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 import java.util.stream.LongStream;
 
@@ -23,10 +21,10 @@ import static com.github.yewyc.Statistics.NANO_PER_MS;
 
 public class WrkMain {
 
-    static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
-        // --timeout 2s --threads 2 --connections 10 --duration 30s --rate 100000"
-        if (args.length == 0 || (args.length - 1) % 2 != 0) {
+        // --timeout 2s --threads 2 --connections 10 --duration 30s --rate 100000 http://localhost:8080/hello
+        if (args.length == 0) {
             System.err.println("Usage: WrkMain --timeout <timeout> --threads <threads> --connections <connections> --duration <duration> --rate <rate>");
             return;
         }
@@ -39,30 +37,48 @@ public class WrkMain {
         int threads = Integer.parseInt(params.get("threads"));
         int connections = Integer.parseInt(params.get("connections"));;
         int duration = Integer.parseInt(params.get("duration").replace("s", ""));
-        int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : Model.CLOSED_MODEL.value;
+        int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : 0;
+        String warmUpUrlBase = args[args.length - 2];
+        if (!warmUpUrlBase.startsWith("http")) {
+            warmUpUrlBase = null;
+        }
         String url = args[args.length - 1];
 
         Duration connectTimeout = Duration.ofSeconds(timeout);
-        try (Benchmark benchmark = new Benchmark(duration, threads, rate)) {
+        BenchmarkBuilder builder = new BenchmarkBuilder()
+                .duration(duration).connections(connections).threads(threads).rate(rate)
+                .urlBase(url)
+                .warmUpDuration(6)
+                .warmUpUrlBase(warmUpUrlBase);
+        try (Benchmark benchmark =  builder.build()) {
             benchmark
-                    .addTask(
-                            new WeightTask(task(url, connectTimeout, connections))
-                    )
-                    .start()
-                    .generateReport(new WrkStats(threads, connections, url))
-                    .plot();
+                .addTask(
+                        new WeightTask(task(url, connectTimeout, connections))
+                )
+                .start()
+                .generateReport(new WrkStats(threads, connections, url))
+                .plot();
         }
     }
 
     private static Callable<Task> task(String url, Duration connectTimeout, int maxConnections) {
 
-        class LocalTask extends HttpTask {
+        class LocalTask extends Task {
 
-            private final HttpRequest request;
-            private final HttpResponse.BodyHandler<String> handler;
+            private HttpClient client;
+            private HttpRequest request;
+            private HttpResponse.BodyHandler<String> handler;
 
             public LocalTask() {
-                super("test", connectTimeout, maxConnections);
+                super("test");
+            }
+
+            @Override
+            public void initialize(ExecutorService executor) {
+                this.client = HttpClient.newBuilder()
+                        .connectTimeout(connectTimeout)
+                        .executor(executor)
+                        .build();
 
                 this.request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -86,38 +102,15 @@ public class WrkMain {
                         return localStatus;
                     });
             }
+
+            @Override
+            public void close() {
+                this.client.shutdownNow();
+                this.client.close();
+            }
         }
 
         return LocalTask::new;
-    }
-
-    private static abstract class HttpTask extends Task {
-
-        HttpClient client;
-        ExecutorService executor;
-
-        HttpTask(String name, Duration connectTimeout, int maxConnections) {
-            super(name);
-            ThreadFactory threadFactory = r -> {
-                Thread t = new Thread(r);
-                t.setName("HttpClient-Worker-" + t.getId());
-                return t;
-            };
-            executor = Executors.newFixedThreadPool(maxConnections, threadFactory);
-
-            this.client = HttpClient.newBuilder()
-                    .connectTimeout(connectTimeout)
-                    .executor(executor)
-                    .build();
-        }
-
-        @Override
-        public void close() {
-            this.executor.shutdownNow();
-            this.executor.close();
-            this.client.shutdownNow();
-            this.client.close();
-        }
     }
 
     private static class WrkStats implements Consumer<Statistics> {
@@ -152,6 +145,7 @@ public class WrkMain {
             System.out.println("  " + getTotalRequests(stats) + " requests in " + stats.duration() + "s, __MB read");
             System.out.println("Requests/sec: " + getRequestsPerSecond(stats));
             System.out.println("Transfer/sec:  __MB");
+            System.out.println("Errors: " + stats.getTotalErrors());
         }
 
         private String getLatencyAverage(Statistics stats) {

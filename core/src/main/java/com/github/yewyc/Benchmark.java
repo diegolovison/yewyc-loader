@@ -1,5 +1,6 @@
 package com.github.yewyc;
 
+import io.netty.util.AttributeKey;
 import org.jboss.logging.Logger;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Figure;
@@ -9,56 +10,46 @@ import tech.tablesaw.plotly.traces.Trace;
 
 import java.io.Closeable;
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class Benchmark implements Closeable {
 
     private static final Logger log = Logger.getLogger(Benchmark.class);
 
+    private static final AttributeKey<Boolean> firedAttributeKey = AttributeKey.newInstance("fired");
+
     protected final List<WeightTask> weightTasks = new ArrayList<>();
 
     private final int threads;
-    private final long duration;
+    private final Duration duration;
     private final int rate;
-    private final long warmUpDuration;
-    private final boolean recordWarmUp;
+    private final int connections;
+    private final String urlBase;
+    private final Duration warmUpDuration;
+    private final String warmUpUrlBase; // required to warm up the load generator
 
-    private final Map<String, Statistics> taskMap = new HashMap<>();
-
-    public Benchmark(long duration, int threads) {
-        this(duration, threads, Model.CLOSED_MODEL.value, 0, false);
-    }
-
-    public Benchmark(long duration, int threads, int rate) {
-        this(duration, threads, rate, 0, false);
-    }
+    private final List<Statistics> tasks = new ArrayList<>();
 
     /**
+     * Use the BenchmarkBuilder to construct the object
      *
-     * @param duration
-     * @param rate When rate is -1 it will be a closed model. Use the constructor without the rate parameter for convenience
-     * @param threads
-     * @param warmUpDuration
+     * @param rate When rate is 0 it will be a closed model. Operations per second
      */
-    public Benchmark(long duration, int threads, int rate, long warmUpDuration, boolean recordWarmUp) {
+    Benchmark(int threads, Duration duration, int rate, int connections, String urlBase, Duration warmUpDuration, String warmUpUrlBase) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
         this.threads = threads;
         this.duration = duration;
         this.rate = rate;
+        this.connections = connections;
+        this.urlBase = urlBase;
         this.warmUpDuration = warmUpDuration;
-        this.recordWarmUp = recordWarmUp;
+        this.warmUpUrlBase = warmUpUrlBase;
     }
 
     public Benchmark addTask(WeightTask... tasks) {
@@ -73,53 +64,15 @@ public class Benchmark implements Closeable {
         return this;
     }
 
-    public Benchmark start() {
-        long intervalNs;
-        if (this.rate == Model.CLOSED_MODEL.value) {
-            intervalNs = Model.CLOSED_MODEL.value;
-        } else {
-            intervalNs = 1000000000 / (this.rate / this.threads);
+    public Benchmark start() throws InterruptedException {
+        BenchmarkRun r = new BenchmarkRun();
+        if (this.warmUpUrlBase != null) {
+            r.run(this.rate, this.connections, this.threads, this.warmUpUrlBase, this.duration, this.warmUpDuration);
         }
-
-        log.info("Starting the benchmark");
-        List<Future<RunnableResult>> tasks = new ArrayList<>();
-        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            for (int i = 0; i < this.threads; i++) {
-                Callable<RunnableResult> task = new RunnableTask(i,
-                        intervalNs,
-                        this.weightTasks,
-                        TimeUnit.SECONDS.toNanos(this.warmUpDuration),
-                        TimeUnit.SECONDS.toNanos(this.duration),
-                        this.recordWarmUp
-                );
-                Future<RunnableResult> futureTask = executor.submit(task);
-                tasks.add(futureTask);
-            }
-            log.info("Waiting for tasks to complete");
-            List<RunnableResult> executedTasks = new ArrayList<>();
-            for (Future<RunnableResult> future : tasks) {
-                RunnableResult result;
-                try {
-                    result = future.get();
-                } catch (Exception e) {
-                    throw new RuntimeException("Benchmark stopped", e);
-                }
-                executedTasks.add(result);
-            }
-            log.info("Merging tasks stats");
-            // each task as an id
-            for (RunnableResult result : executedTasks) {
-                for (InstanceTask instanceTask : result.getInstanceTasks()) {
-                    Task task = instanceTask.getTask();
-                    if (this.taskMap.containsKey(task.getId())) {
-                        this.taskMap.get(task.getId()).merge(task.stats(result.getStart(), result.getEnd()));
-                    } else {
-                        this.taskMap.put(task.getId(), task.stats(result.getStart(), result.getEnd()));
-                    }
-                }
-            }
-        } // The executor automatically shuts down here
-        log.info("Benchmark finished");
+        List<Statistics> phaseTasks = r.run(this.rate, this.connections, this.threads, this.urlBase, this.duration, this.warmUpDuration);
+        for (Statistics phaseTask : phaseTasks) {
+            this.tasks.add(phaseTask);
+        }
         return this;
     }
 
@@ -129,10 +82,10 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark generateReport(Consumer<Statistics> consumer) {
-        if (this.taskMap.isEmpty()) {
+        if (tasks.isEmpty()) {
             throw new RuntimeException("No tasks have been executed");
         }
-        for (Statistics stats : this.taskMap.values()) {
+        for (Statistics stats : tasks) {
             consumer.accept(stats);
         }
         return this;
@@ -142,7 +95,7 @@ public class Benchmark implements Closeable {
         List<Trace> traces = new ArrayList<>();
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
-        for (Statistics stats : this.taskMap.values()) {
+        for (Statistics stats : tasks) {
             // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
             PlotData plotData = stats.plot(i);
             traces.add(plotData.trace);

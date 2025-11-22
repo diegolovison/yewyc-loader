@@ -2,6 +2,7 @@ package com.github.yewyc;
 
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
 import static com.github.yewyc.CallableUtils.callTask;
 
@@ -21,8 +22,9 @@ public class WeightTask {
         this.probability = probability;
     }
 
-    public Task initialize() {
+    public Task initialize(ExecutorService executor) {
         Task instance = callTask(this.task);
+        instance.initialize(executor);
         instance.setId(this.id);
         return instance;
     }
