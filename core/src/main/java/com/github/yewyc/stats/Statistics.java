@@ -16,8 +16,7 @@ public class Statistics {
 
     public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     public static final int numberOfSignificantValueDigits = 3;
-
-    public static final long NANO_PER_MS = 1_000_000;
+    public static final long scale = TimeUnit.MILLISECONDS.toNanos(1);
 
     private StatisticsInfo info;
     private List<StatisticsInfo> all;
@@ -84,17 +83,17 @@ public class Statistics {
         long totalErrors = this.getTotalErrors();
         System.out.println("Task: " + info.name);
         System.out.println("\t======= Response time =======");
-        System.out.println("\t50thPercentile(ms): " + histogram.getValueAtPercentile(50) / NANO_PER_MS);
-        System.out.println("\t90thPercentile(ms): " + histogram.getValueAtPercentile(90) / NANO_PER_MS);
-        System.out.println("\t95thPercentile(ms): " + histogram.getValueAtPercentile(95) / NANO_PER_MS);
-        System.out.println("\t99thPercentile(ms): " + histogram.getValueAtPercentile(99) / NANO_PER_MS);
-        System.out.println("\t99.9thPercentile(ms): " + histogram.getValueAtPercentile(99.9) / NANO_PER_MS);
-        System.out.println("\t99.99thPercentile(ms): " + histogram.getValueAtPercentile(99.99) / NANO_PER_MS);
+        System.out.println("\t50thPercentile(ms): " + histogram.getValueAtPercentile(50) / scale);
+        System.out.println("\t90thPercentile(ms): " + histogram.getValueAtPercentile(90) / scale);
+        System.out.println("\t95thPercentile(ms): " + histogram.getValueAtPercentile(95) / scale);
+        System.out.println("\t99thPercentile(ms): " + histogram.getValueAtPercentile(99) / scale);
+        System.out.println("\t99.9thPercentile(ms): " + histogram.getValueAtPercentile(99.9) / scale);
+        System.out.println("\t99.99thPercentile(ms): " + histogram.getValueAtPercentile(99.99) / scale);
         System.out.println("\t======== Info ========");
-        System.out.println("\tMin(ms): " + (histogram.getMinValue() / NANO_PER_MS));
-        System.out.println("\tMax(ms): " + (histogram.getMaxValue() / NANO_PER_MS));
-        System.out.println("\tMean(ms): " + (histogram.getMean() / NANO_PER_MS));
-        System.out.println("\tStd Dev(ms): " + (histogram.getStdDeviation() / NANO_PER_MS));
+        System.out.println("\tMin(ms): " + (histogram.getMinValue() / scale));
+        System.out.println("\tMax(ms): " + (histogram.getMaxValue() / scale));
+        System.out.println("\tMean(ms): " + (histogram.getMean() / scale));
+        System.out.println("\tStd Dev(ms): " + (histogram.getStdDeviation() / scale));
         System.out.println("\tTotal requests: " + totalRequests);
         System.out.println("\tTotal errors: " + totalErrors);
         System.out.println("\tDuration(sec): " + this.duration());
