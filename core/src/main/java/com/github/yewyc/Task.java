@@ -1,5 +1,6 @@
 package com.github.yewyc;
 
+import com.github.yewyc.stats.Statistics;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
 
@@ -8,12 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
+
+import static com.github.yewyc.stats.Statistics.highestTrackableValue;
+import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
 
 public abstract class Task implements Serializable {
-
-    static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
-    static final int numberOfSignificantValueDigits = 3;
 
     private String id;
     private final String name;

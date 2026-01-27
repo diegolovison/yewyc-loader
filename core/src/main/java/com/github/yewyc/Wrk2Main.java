@@ -1,7 +1,7 @@
 package com.github.yewyc;
 
+import com.github.yewyc.stats.Statistics;
 import org.HdrHistogram.AbstractHistogram;
-import org.HdrHistogram.HistogramIterationValue;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.LongStream;
 
-import static com.github.yewyc.Statistics.NANO_PER_MS;
+import static com.github.yewyc.stats.Statistics.NANO_PER_MS;
 
 // -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
 public class Wrk2Main {

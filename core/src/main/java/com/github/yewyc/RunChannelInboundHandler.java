@@ -1,5 +1,6 @@
 package com.github.yewyc;
 
+import com.github.yewyc.stats.Statistics;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,8 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.LockSupport;
 
-import static com.github.yewyc.Task.highestTrackableValue;
-import static com.github.yewyc.Task.numberOfSignificantValueDigits;
+import static com.github.yewyc.stats.Statistics.highestTrackableValue;
+import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
 
 public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 

@@ -1,5 +1,6 @@
-package com.github.yewyc;
+package com.github.yewyc.stats;
 
+import com.github.yewyc.PlotData;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
 import tech.tablesaw.plotly.traces.ScatterTrace;
@@ -7,12 +8,14 @@ import tech.tablesaw.plotly.traces.ScatterTrace;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static com.github.yewyc.Task.highestTrackableValue;
-import static com.github.yewyc.Task.numberOfSignificantValueDigits;
 import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class Statistics {
+
+    public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
+    public static final int numberOfSignificantValueDigits = 3;
 
     public static final long NANO_PER_MS = 1_000_000;
 
