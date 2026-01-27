@@ -65,7 +65,6 @@ public class BenchmarkRun {
 
         EventLoopGroup group = new NioEventLoopGroup(threads);
         try {
-            List<StatsChannelInboundHandler> listeners = new ArrayList<>();
             Bootstrap b = new Bootstrap();
             b.group(group).channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
@@ -105,20 +104,19 @@ public class BenchmarkRun {
                                 }
                             });
 
-                            StatsChannelInboundHandler last = new StatsChannelInboundHandler(urlBase, ch.read(), intervalNs);
-                            p.addLast(last);
-                            listeners.add(last);
+                            p.addLast("run-handler", new RunChannelInboundHandler(urlBase, ch.read(), intervalNs));
                         }
                     });
 
+            List<Channel> channels = new ArrayList<>();
             for (int i = 0; i < connections; i++) {
-                b.connect(urlBase.getHost(), urlBase.getPort()).sync().channel();
+                Channel channel = b.connect(urlBase.getHost(), urlBase.getPort()).sync().channel();
+                channels.add(channel);
             }
-
             if (warmUpDuration != null) {
-                tasks.add(runPhase(listeners, "warm-up", warmUpDuration));
+                tasks.add(runPhase(channels, "warm-up", warmUpDuration));
             }
-            tasks.add(runPhase(listeners, "test", duration));
+            tasks.add(runPhase(channels, "test", duration));
 
             group.shutdownGracefully();
             group.terminationFuture().sync();
@@ -131,15 +129,22 @@ public class BenchmarkRun {
         return tasks;
     }
 
-    private Statistics runPhase(List<StatsChannelInboundHandler> listeners, String name, Duration duration) throws InterruptedException {
-
-        listeners.forEach(h -> h.start(name));
+    /*
+     * block operation
+     */
+    private Statistics runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+        List<RunChannelInboundHandler> listeners = new ArrayList<>();
+        channels.forEach(ch -> {
+            RunChannelInboundHandler handler = (RunChannelInboundHandler) ch.pipeline().get("run-handler");
+            listeners.add(handler);
+        });
         log.info("Starting the phase: " + name);
+        listeners.forEach(h -> h.start(name));
         Thread.sleep(duration.toMillis());
-        listeners.forEach(StatsChannelInboundHandler::stop);
+        listeners.forEach(RunChannelInboundHandler::stop);
 
         List<Statistics> stats = new ArrayList<>();
-        for (StatsChannelInboundHandler listener : listeners) {
+        for (RunChannelInboundHandler listener : listeners) {
             stats.add(listener.collectStatistics());
         }
         Statistics stat = stats.getFirst();
@@ -150,7 +155,7 @@ public class BenchmarkRun {
         return stat;
     }
 
-    private static final class StatsChannelInboundHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
+    private static final class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 
         private final URL urlBase;
         private final Channel channel;
@@ -169,7 +174,7 @@ public class BenchmarkRun {
         private List<Integer> errors;
         private String name;
 
-        private StatsChannelInboundHandler(URL urlBase, Channel channel, long intervalNs) {
+        private RunChannelInboundHandler(URL urlBase, Channel channel, long intervalNs) {
             this.urlBase = urlBase;
             this.channel = channel;
             this.intervalNs = intervalNs;
