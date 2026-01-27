@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.Map;
@@ -123,53 +124,46 @@ public class Wrk2Main {
 
         @Override
         public void accept(Statistics stats) {
-            DoubleSummaryStatistics requestsStats = stats.getTotalRequests().stream().mapToDouble(s -> s).summaryStatistics();
+            Collection<Long> totalRequests = stats.getTotalRequests();
+            AbstractHistogram histogram = stats.getHistogram();
 
-            String requestPerSecondAverage =  String.format("%8.2f  ", requestsStats.getAverage());
-            double requestsStdDev = Math.sqrt(
-                    stats.getTotalRequests().stream().mapToDouble(s -> Math.pow(s - requestsStats.getAverage(), 2)).sum() / stats.getTotalRequests().size());
-            String requestPerSecondStdDev =  String.format("%8.2f  ", requestsStdDev);
+            DoubleSummaryStatistics requestsStats = totalRequests.stream().mapToDouble(s -> s).summaryStatistics();
+            assert totalRequests.size() == requestsStats.getCount() : "Requests count mismatch";
+
+            String requestAverage =  String.format("%8.2f  ", requestsStats.getAverage());
+            double requestsStdDev = Math.sqrt(stats.getTotalRequests().stream().mapToDouble(s -> Math.pow(s - requestsStats.getAverage(), 2)).sum() / requestsStats.getCount());
+            String requestStdDev =  String.format("%8.2f  ", requestsStdDev);
             String requestMax = String.format("%8.2f  ", requestsStats.getMax());
-            String requestWithinStdev = String.format("%8.2f", statsWithinStdevRequests(requestsStats, requestsStdDev,
-                    stats.getTotalRequests().stream().mapToLong(s -> s), stats.getTotalRequests().size()));
+            String requestWithinStdev = String.format("%8.2f", statsWithinStdevRequests(requestsStats, requestsStdDev, totalRequests.stream().mapToLong(s -> s), requestsStats.getCount()));
 
-            System.out.println("Running " + stats.duration() + "s " + stats.getName() + " @ " + url);
+            long duration = stats.duration();
+            System.out.println("Running " + duration + "s " + stats.getName() + " @ " + url);
             System.out.println("  " + threads + " threads and " + connections +" connections");
             System.out.println("  Thread Stats   Avg      Stdev     Max   +/- Stdev");
-            System.out.println("    Latency   " + getLatencyAverage(stats) + "  " + getLatencyStdev(stats) + "   " + getLatencyMax(stats)  + "   " + statsWithinStdevLatency(stats) + "%");
-            System.out.println("    Req/Sec   " + requestPerSecondAverage + "   " + requestPerSecondStdDev + "  " + requestMax + "     " + requestWithinStdev + "%");
-            System.out.println("  " + getTotalRequests(stats) + " requests in " + stats.duration() + "s, __MB read");
-            System.out.println("Requests/sec: " + getRequestsPerSecond(stats));
+            System.out.println("    Latency   " + getLatencyAverage(histogram) + "  " + getLatencyStdev(histogram) + "   " + getLatencyMax(histogram)  + "   " + statsWithinStdevLatency(requestsStats, histogram) + "%");
+            System.out.println("    Req/Sec   " + requestAverage + "   " + requestStdDev + "  " + requestMax + "     " + requestWithinStdev + "%");
+            System.out.println("  " + requestsStats.getSum() + " requests in " + duration + "s, __MB read");
+            System.out.println("Requests/sec: " + String.format("%8.2f", requestsStats.getSum() / duration));
             System.out.println("Transfer/sec:  __MB");
             System.out.println("Errors: " + stats.getTotalErrors());
         }
 
-        private String getLatencyAverage(Statistics stats) {
-            double value = stats.getHistogram().getMean() / NANO_PER_MS;
+        private String getLatencyAverage(AbstractHistogram histogram) {
+            double value = histogram.getMean() / NANO_PER_MS;
             return String.format("%8.2fms", value);
         }
 
-        private String getLatencyStdev(Statistics stats) {
-            double value = stats.getHistogram().getStdDeviation() / NANO_PER_MS;
+        private String getLatencyStdev(AbstractHistogram histogram) {
+            double value = histogram.getStdDeviation() / NANO_PER_MS;
             return String.format("%8.2fms", value);
         }
 
-        private String getLatencyMax(Statistics stats) {
-            double value = (double) stats.getHistogram().getMaxValue() / NANO_PER_MS;
+        private String getLatencyMax(AbstractHistogram histogram) {
+            double value = (double) histogram.getMaxValue() / NANO_PER_MS;
             return String.format("%8.2fms", value);
         }
 
-        private long getTotalRequests(Statistics stats) {
-            return stats.getTotalRequests().stream().mapToLong(Long::longValue).sum();
-        }
-
-        private String getRequestsPerSecond(Statistics stats) {
-            double value = (double) getTotalRequests(stats) / stats.duration();
-            return String.format("%8.2f", value);
-        }
-
-        private String statsWithinStdevLatency(Statistics stats) {
-            AbstractHistogram histogram = stats.getHistogram();
+        private String statsWithinStdevLatency(DoubleSummaryStatistics requestsStats, AbstractHistogram histogram) {
             double stdDev = histogram.getStdDeviation();
             double lower = histogram.getMean() - stdDev;
             double upper = histogram.getMean() + stdDev;
@@ -180,11 +174,11 @@ public class Wrk2Main {
                     sum += value.getCountAddedInThisIterationStep();
                 }
             }
-            double value = 100d * sum / getTotalRequests(stats);
+            double value = 100d * sum / requestsStats.getCount();
             return String.format("%8.2f", value);
         }
 
-        private double statsWithinStdevRequests(DoubleSummaryStatistics stats, double stdDev, LongStream stream, int count) {
+        private double statsWithinStdevRequests(DoubleSummaryStatistics stats, double stdDev, LongStream stream, long count) {
             double lower = stats.getAverage() - stdDev;
             double upper = stats.getAverage() + stdDev;
             return 100d * stream.filter(reqs -> reqs >= lower && reqs <= upper).count() / count;
