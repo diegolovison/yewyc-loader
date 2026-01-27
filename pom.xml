@@ -16,10 +16,8 @@
 
   <properties>
       <jboss-logging.version>3.6.1.Final</jboss-logging.version>
-      <tablesaw-core.version>0.44.1</tablesaw-core.version>
+      <tablesaw-core.version>0.44.4</tablesaw-core.version>
       <jgroups.version>5.4.4.Final</jgroups.version>
-      <okhttp.version>4.12.0</okhttp.version>
-      <reactor-netty.version>1.2.5</reactor-netty.version>
       <HdrHistogram.version>2.2.2</HdrHistogram.version>
   </properties>
 
