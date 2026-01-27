@@ -4,6 +4,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
@@ -72,6 +73,21 @@ public class BenchmarkRun {
                         protected void initChannel(SocketChannel ch) {
                             StatsChannelInboundHandler last = new StatsChannelInboundHandler(urlBase, ch.read(), intervalNs);
                             ChannelPipeline p = ch.pipeline();
+
+                            p.addLast(new ChannelInboundHandlerAdapter() {
+                                @Override
+                                public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                    log.info("New connection opened: " + ctx.channel().remoteAddress());
+                                    super.channelActive(ctx);
+                                }
+
+                                @Override
+                                public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                                    log.info("Connection closed: " + ctx.channel().remoteAddress());
+                                    super.channelInactive(ctx);
+                                }
+                            });
+
                             p.addLast(new HttpClientCodec());
                             p.addLast(new HttpObjectAggregator(1024 * 1024));
                             p.addLast(last);
@@ -143,6 +159,7 @@ public class BenchmarkRun {
             this.intervalNs = intervalNs;
             this.req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, this.urlBase.getPath(), Unpooled.EMPTY_BUFFER);
             this.req.headers().set(HttpHeaderNames.HOST, this.urlBase.getHost());
+            this.req.headers().set(HttpHeaderNames.CONNECTION, "keep-alive");
         }
 
         @Override

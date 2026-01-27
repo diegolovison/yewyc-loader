@@ -20,7 +20,7 @@ public class LocalHttpServer {
         @Override
         public void handle(HttpExchange t) throws IOException {
             t.sendResponseHeaders(200, 0);
-            t.close();
+            t.getResponseBody().close();
         }
     }
 }
