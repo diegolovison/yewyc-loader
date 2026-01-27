@@ -60,32 +60,33 @@ public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHt
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
 
-        long elapsedTimeNs = System.nanoTime() - ctx.channel().attr(beginAttributeKey).get();
-        // assert ctx.channel().attr(firedAttributeKey).get();
-        this.recorder.recordValue(elapsedTimeNs);
-        if (msg.status().code() != 200) {
-            this.errorCount += 1;
-        }
-        if (log.isTraceEnabled()) {
-            String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
-            log.trace("Response [" + msg.status().code() + "]: " + responseBody);
-        }
+        if (this.running) {
+            long elapsedTimeNs = System.nanoTime() - ctx.channel().attr(beginAttributeKey).get();
+            this.recorder.recordValue(elapsedTimeNs);
+            if (msg.status().code() != 200) {
+                this.errorCount += 1;
+            }
+            if (log.isTraceEnabled()) {
+                String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
+                log.trace("Response [" + msg.status().code() + "]: " + responseBody);
+            }
 
-        ctx.channel().attr(beginAttributeKey).set(null);
+            ctx.channel().attr(beginAttributeKey).set(null);
 
-        long now = System.currentTimeMillis();
-        if (lastRecordedTimeForGroupingHistograms == 0) {
-            lastRecordedTimeForGroupingHistograms = now;
-        }
-        long elapsedTimeForGroupingHistagrams = now - this.lastRecordedTimeForGroupingHistograms;
-        if (elapsedTimeForGroupingHistagrams >= 1000) {
-            this.histograms.add(recorder.getIntervalHistogram());
-            this.errors.add(errorCount);
-            this.lastRecordedTimeForGroupingHistograms = now;
-            this.errorCount = 0;
-        }
+            long now = System.currentTimeMillis();
+            if (lastRecordedTimeForGroupingHistograms == 0) {
+                lastRecordedTimeForGroupingHistograms = now;
+            }
+            long elapsedTimeForGroupingHistagrams = now - this.lastRecordedTimeForGroupingHistograms;
+            if (elapsedTimeForGroupingHistagrams >= 1000) {
+                this.histograms.add(recorder.getIntervalHistogram());
+                this.errors.add(errorCount);
+                this.lastRecordedTimeForGroupingHistograms = now;
+                this.errorCount = 0;
+            }
 
-        sendRequest(ctx.channel());
+            sendRequest(ctx.channel());
+        }
     }
 
     public void start(String name) {
