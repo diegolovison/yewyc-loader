@@ -140,7 +140,7 @@ public class Wrk2Main {
             System.out.println("Running " + duration + "s " + stats.getName() + " @ " + url);
             System.out.println("  " + threads + " threads and " + connections +" connections");
             System.out.println("  Thread Stats   Avg      Stdev     Max   +/- Stdev");
-            System.out.println("    Latency   " + getLatencyAverage(histogram) + "  " + getLatencyStdev(histogram) + "   " + getLatencyMax(histogram)  + "   " + statsWithinStdevLatency(requestsStats, histogram) + "%");
+            System.out.println("    Latency   " + getLatencyAverage(histogram) + "  " + getLatencyStdev(histogram) + "   " + getLatencyMax(histogram)  + "   " + statsWithinStdevLatency(histogram) + "%");
             System.out.println("    Req/Sec   " + requestAverage + "   " + requestStdDev + "  " + requestMax + "     " + requestWithinStdev + "%");
             System.out.println("  " + requestsStats.getSum() + " requests in " + duration + "s, __MB read");
             System.out.println("Requests/sec: " + String.format("%8.2f", requestsStats.getSum() / duration));
@@ -163,18 +163,18 @@ public class Wrk2Main {
             return String.format("%8.2fms", value);
         }
 
-        private String statsWithinStdevLatency(DoubleSummaryStatistics requestsStats, AbstractHistogram histogram) {
+        private String statsWithinStdevLatency(AbstractHistogram histogram) {
             double stdDev = histogram.getStdDeviation();
             double lower = histogram.getMean() - stdDev;
             double upper = histogram.getMean() + stdDev;
             long sum = 0;
-            for (var it = histogram.allValues().iterator(); it.hasNext();) {
-                HistogramIterationValue value = it.next();
-                if (value.getValueIteratedFrom() >= lower && value.getValueIteratedTo() <= upper) {
+            for (var value : histogram.allValues()) {
+                // Fix: Check the representative value (IteratedTo) against bounds
+                if (value.getValueIteratedTo() >= lower && value.getValueIteratedTo() <= upper) {
                     sum += value.getCountAddedInThisIterationStep();
                 }
             }
-            double value = 100d * sum / requestsStats.getCount();
+            double value = 100d * sum / histogram.getTotalCount();
             return String.format("%8.2f", value);
         }
 
