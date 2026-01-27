@@ -45,12 +45,13 @@ public class BenchmarkRun {
         long intervalNs;
         if (rate == 0) {
             intervalNs = 0;
+            log.info("Benchmark initialization with a closed model");
         } else {
             // each instance of StatsChannelInboundHandler is a new class
-            intervalNs = 1000000000 / (rate / connections);
+            double requestsPerSecondPerConnection = (double) rate / connections;
+            intervalNs = (long) (1_000_000_000.0 / requestsPerSecondPerConnection);
+            log.info("Benchmark initialization with an open model. requests_per_second_per_connection=" + requestsPerSecondPerConnection + ", max_requests_warmup_phase=" + (requestsPerSecondPerConnection * connections * warmUpDuration.toSeconds()) + ", max_requests_test_phase=" + (requestsPerSecondPerConnection * connections * duration.toSeconds()));
         }
-
-        log.info("Benchmark initialization with " + (rate == 0 ? " a closed model" : "an open model"));
 
         EventLoopGroup group = new NioEventLoopGroup(threads);
         try {

@@ -15,6 +15,8 @@ public class Wrk2Main {
 
     public static void main(String[] args) throws InterruptedException {
 
+        System.out.println("Starting Wrk2Main: " + String.join(" ", args));
+
         // --timeout 2s --threads 2 --connections 10 --duration 30s --rate 100000 http://localhost:8080/hello
         if (args.length == 0) {
             System.err.println("Usage: WrkMain --timeout <timeout> --threads <threads> --connections <connections> --duration <duration> --rate <rate> http://localhost:8080/");

@@ -74,7 +74,6 @@ public class Benchmark implements Closeable {
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
         for (Statistics stats : tasks) {
-            // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
             PlotData plotData = stats.plot(i);
             traces.add(plotData.trace);
             i += 1;
