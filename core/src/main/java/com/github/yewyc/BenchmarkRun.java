@@ -71,9 +71,10 @@ public class BenchmarkRun {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            StatsChannelInboundHandler last = new StatsChannelInboundHandler(urlBase, ch.read(), intervalNs);
+
                             ChannelPipeline p = ch.pipeline();
 
+                            // Monitor open and close connections
                             p.addLast(new ChannelInboundHandlerAdapter() {
                                 @Override
                                 public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -90,6 +91,21 @@ public class BenchmarkRun {
 
                             p.addLast(new HttpClientCodec());
                             p.addLast(new HttpObjectAggregator(1024 * 1024));
+
+                            // Monitor In-flight HTTP requests that haven't completed yet during shutdown
+                            p.addLast(new ChannelInboundHandlerAdapter() {
+                                @Override
+                                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                    if (cause instanceof io.netty.handler.codec.PrematureChannelClosureException) {
+                                        log.info("Channel closed during shutdown: " + cause.getMessage());
+                                    } else {
+                                        log.error("Unexpected exception in channel", cause);
+                                    }
+                                    ctx.close();
+                                }
+                            });
+
+                            StatsChannelInboundHandler last = new StatsChannelInboundHandler(urlBase, ch.read(), intervalNs);
                             p.addLast(last);
                             listeners.add(last);
                         }
