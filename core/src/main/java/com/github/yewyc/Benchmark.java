@@ -1,7 +1,8 @@
 package com.github.yewyc;
 
 import io.netty.util.AttributeKey;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Figure;
 import tech.tablesaw.plotly.components.Grid;
@@ -18,7 +19,7 @@ import java.util.function.Consumer;
 
 public class Benchmark implements Closeable {
 
-    private static final Logger log = Logger.getLogger(Benchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(Benchmark.class);
 
     private static final AttributeKey<Boolean> firedAttributeKey = AttributeKey.newInstance("fired");
 

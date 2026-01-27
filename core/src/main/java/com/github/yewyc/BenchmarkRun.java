@@ -12,7 +12,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -23,7 +24,7 @@ import java.util.List;
 
 public class BenchmarkRun {
 
-    private static final Logger log = Logger.getLogger(Benchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
     public List<Statistics> run(int rate, int connections, int threads, String urlBaseParam, Duration duration, Duration warmUpDuration) {
 

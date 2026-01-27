@@ -13,7 +13,8 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.AttributeKey;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ import static com.github.yewyc.Task.numberOfSignificantValueDigits;
 
 public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 
-    private static final Logger log = Logger.getLogger(RunChannelInboundHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(RunChannelInboundHandler.class);
 
     private static final AttributeKey<Long> beginAttributeKey = AttributeKey.newInstance("begin");
 

@@ -1,13 +1,21 @@
 package com.github.yewyc;
 
-import org.jboss.logging.Logger;
-import org.jgroups.*;
+import org.jgroups.JChannel;
+import org.jgroups.Message;
+import org.jgroups.ObjectMessage;
+import org.jgroups.Receiver;
+import org.jgroups.View;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tech.tablesaw.api.DoubleColumn;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.plotly.traces.ScatterTrace;
 import tech.tablesaw.plotly.traces.Trace;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -15,7 +23,7 @@ import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class DistributedBenchmark extends Benchmark {
 
-    private static final Logger log = Logger.getLogger(DistributedBenchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(DistributedBenchmark.class);
 
     private final JChannel channel;
     private final int expectedNumberOfNodes;
@@ -198,7 +206,7 @@ public class DistributedBenchmark extends Benchmark {
 
         @Override
         public void viewAccepted(View view) {
-            log.infof("[%s] view: %s\n", ch.getAddress(), view);
+            log.info("[%s] view: %s\n", ch.getAddress(), view);
             if (view.getMembers().size() == this.expectedNumberOfNodes) {
                 this.countDownLatch.countDown();
             }

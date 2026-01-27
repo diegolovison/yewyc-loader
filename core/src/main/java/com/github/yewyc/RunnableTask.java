@@ -1,6 +1,7 @@
 package com.github.yewyc;
 
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +14,7 @@ import static com.github.yewyc.CumulativeDistributionFunction.cdfChoice;
 
 public class RunnableTask {
 
-    private static final Logger log = Logger.getLogger(RunnableTask.class);
+    private static final Logger log = LoggerFactory.getLogger(RunnableTask.class);
 
     private final ExecutorService executor;
     private final double[] probabilities;
