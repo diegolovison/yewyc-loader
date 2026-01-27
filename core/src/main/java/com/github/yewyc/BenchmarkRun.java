@@ -97,9 +97,9 @@ public class BenchmarkRun {
                 channels.add(channel);
             }
             if (warmUpDuration != null) {
-                tasks.add(runPhase(channels, "warm-up", warmUpDuration));
+                tasks.add(runWarmupPhase(channels, "warm-up", warmUpDuration));
             }
-            tasks.add(runPhase(channels, "test", duration));
+            tasks.add(runTestPhase(channels, "test", duration));
 
             group.shutdownGracefully();
             group.terminationFuture().sync();
@@ -110,6 +110,14 @@ public class BenchmarkRun {
         log.info("Benchmark finished");
 
         return tasks;
+    }
+
+    private Statistics runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+        return this.runPhase(channels, name, duration);
+    }
+
+    private Statistics runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+        return this.runPhase(channels, name, duration);
     }
 
     /*
