@@ -111,22 +111,26 @@ public class Statistics {
         double[] yData = new double[maxTotal];
         for (int i = 0; i < maxTotal; i++) {
             xData[i] = (double) i + 1;
-            double meanSum = 0;
-            long total = 0;
+            double weightedTimeSum = 0; // Accumulates (Mean * Count)
+            long totalCountAtSecond = 0;
 
             for (StatisticsInfo info : all) {
                 if (i < info.histograms.size()) {
-                    Histogram histogram = info.histograms.get(i);
-                    meanSum += histogram.getMean();
-                    total += histogram.getTotalCount();
+                    Histogram h = info.histograms.get(i);
+                    long count = h.getTotalCount();
+                    if (count > 0) {
+                        weightedTimeSum += (h.getMean() * count);
+                        totalCountAtSecond += count;
+                    }
                 }
             }
-            if (total > 0) {
-                yData[i] = (meanSum / total) / 1000000;
+
+            if (totalCountAtSecond > 0) {
+                double globalMeanRaw = weightedTimeSum / totalCountAtSecond;
+                yData[i] = globalMeanRaw / (double) scale;
             } else {
                 yData[i] = 0.0;
             }
-
         }
         ScatterTrace trace = ScatterTrace.builder(xData, yData)
                 .mode(ScatterTrace.Mode.LINE)
