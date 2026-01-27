@@ -19,7 +19,7 @@ import java.util.stream.LongStream;
 
 import static com.github.yewyc.Statistics.NANO_PER_MS;
 
-public class WrkMain {
+public class Wrk2Main {
 
     public static void main(String[] args) throws InterruptedException {
 

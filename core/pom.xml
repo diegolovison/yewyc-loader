@@ -60,7 +60,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.github.yewyc.WrkMain</mainClass>
+              <mainClass>com.github.yewyc.Wrk2Main</mainClass>
             </manifest>
           </archive>
           <descriptorRefs>
