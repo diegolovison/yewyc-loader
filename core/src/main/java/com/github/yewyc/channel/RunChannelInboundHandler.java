@@ -1,4 +1,4 @@
-package com.github.yewyc;
+package com.github.yewyc.channel;
 
 import com.github.yewyc.stats.Statistics;
 import io.netty.buffer.Unpooled;

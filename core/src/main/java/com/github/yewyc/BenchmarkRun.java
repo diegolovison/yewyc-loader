@@ -1,5 +1,6 @@
 package com.github.yewyc;
 
+import com.github.yewyc.channel.RunChannelInboundHandler;
 import com.github.yewyc.stats.Statistics;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
