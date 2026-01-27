@@ -30,7 +30,6 @@ public class Benchmark implements Closeable {
     private final int connections;
     private final String urlBase;
     private final Duration warmUpDuration;
-    private final String warmUpUrlBase; // required to warm up the load generator
 
     private final List<Statistics> tasks = new ArrayList<>();
 
@@ -39,7 +38,7 @@ public class Benchmark implements Closeable {
      *
      * @param rate When rate is 0 it will be a closed model. Operations per second
      */
-    Benchmark(int threads, Duration duration, int rate, int connections, String urlBase, Duration warmUpDuration, String warmUpUrlBase) {
+    Benchmark(int threads, Duration duration, int rate, int connections, String urlBase, Duration warmUpDuration) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -49,7 +48,6 @@ public class Benchmark implements Closeable {
         this.connections = connections;
         this.urlBase = urlBase;
         this.warmUpDuration = warmUpDuration;
-        this.warmUpUrlBase = warmUpUrlBase;
     }
 
     public Benchmark addTask(WeightTask... tasks) {
@@ -66,9 +64,6 @@ public class Benchmark implements Closeable {
 
     public Benchmark start() throws InterruptedException {
         BenchmarkRun r = new BenchmarkRun();
-        if (this.warmUpUrlBase != null) {
-            r.run(this.rate, this.connections, this.threads, this.warmUpUrlBase, this.duration, this.warmUpDuration);
-        }
         List<Statistics> phaseTasks = r.run(this.rate, this.connections, this.threads, this.urlBase, this.duration, this.warmUpDuration);
         for (Statistics phaseTask : phaseTasks) {
             this.tasks.add(phaseTask);

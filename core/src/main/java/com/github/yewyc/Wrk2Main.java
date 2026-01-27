@@ -19,13 +19,14 @@ import java.util.stream.LongStream;
 
 import static com.github.yewyc.Statistics.NANO_PER_MS;
 
+// -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
 public class Wrk2Main {
 
     public static void main(String[] args) throws InterruptedException {
 
         // --timeout 2s --threads 2 --connections 10 --duration 30s --rate 100000 http://localhost:8080/hello
         if (args.length == 0) {
-            System.err.println("Usage: WrkMain --timeout <timeout> --threads <threads> --connections <connections> --duration <duration> --rate <rate>");
+            System.err.println("Usage: WrkMain --timeout <timeout> --threads <threads> --connections <connections> --duration <duration> --rate <rate> http://localhost:8080/");
             return;
         }
         Map<String, String> params = new HashMap<>();
@@ -38,18 +39,13 @@ public class Wrk2Main {
         int connections = Integer.parseInt(params.get("connections"));;
         int duration = Integer.parseInt(params.get("duration").replace("s", ""));
         int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : 0;
-        String warmUpUrlBase = args[args.length - 2];
-        if (!warmUpUrlBase.startsWith("http")) {
-            warmUpUrlBase = null;
-        }
         String url = args[args.length - 1];
 
         Duration connectTimeout = Duration.ofSeconds(timeout);
         BenchmarkBuilder builder = new BenchmarkBuilder()
                 .duration(duration).connections(connections).threads(threads).rate(rate)
                 .urlBase(url)
-                .warmUpDuration(6)
-                .warmUpUrlBase(warmUpUrlBase);
+                .warmUpDuration(6);
         try (Benchmark benchmark =  builder.build()) {
             benchmark
                 .addTask(
