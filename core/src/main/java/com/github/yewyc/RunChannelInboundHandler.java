@@ -70,7 +70,6 @@ public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHt
         }
 
         ctx.channel().attr(beginAttributeKey).set(null);
-        //ctx.channel().attr(firedAttributeKey).set(null);
 
         long now = System.currentTimeMillis();
         if (lastRecordedTimeForGroupingHistograms == 0) {
