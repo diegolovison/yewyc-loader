@@ -9,8 +9,7 @@
   <url>http://maven.apache.org</url>
 
   <modules>
-    <module>core</module>
-      <module>java-http-client</module>
+      <module>core</module>
       <module>http-server</module>
   </modules>
 
