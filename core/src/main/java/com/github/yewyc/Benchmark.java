@@ -1,9 +1,6 @@
 package com.github.yewyc;
 
 import com.github.yewyc.stats.Statistics;
-import io.netty.util.AttributeKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Figure;
 import tech.tablesaw.plotly.components.Grid;
@@ -26,6 +23,7 @@ public class Benchmark implements Closeable {
     private final int connections;
     private final String urlBase;
     private final Duration warmUpDuration;
+    private final Duration timeout;
 
     private final List<Statistics> tasks = new ArrayList<>();
 
@@ -34,7 +32,7 @@ public class Benchmark implements Closeable {
      *
      * @param rate When rate is 0 it will be a closed model. Operations per second
      */
-    Benchmark(int threads, Duration duration, int rate, int connections, String urlBase, Duration warmUpDuration) {
+    Benchmark(int threads, Duration duration, int rate, int connections, String urlBase, Duration warmUpDuration, Duration timeout) {
         if (threads <= 0) {
             throw new RuntimeException("virtualThreads must be greater than 0");
         }
@@ -44,11 +42,12 @@ public class Benchmark implements Closeable {
         this.connections = connections;
         this.urlBase = urlBase;
         this.warmUpDuration = warmUpDuration;
+        this.timeout = timeout;
     }
 
-    public Benchmark start() throws InterruptedException {
+    public Benchmark start() {
         BenchmarkRun r = new BenchmarkRun();
-        List<Statistics> phaseTasks = r.run(this.rate, this.connections, this.threads, this.urlBase, this.duration, this.warmUpDuration);
+        List<Statistics> phaseTasks = r.run(this.rate, this.connections, this.threads, this.urlBase, this.duration, this.warmUpDuration, this.timeout);
         for (Statistics phaseTask : phaseTasks) {
             this.tasks.add(phaseTask);
         }

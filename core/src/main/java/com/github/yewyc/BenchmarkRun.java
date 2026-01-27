@@ -13,6 +13,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +24,13 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class BenchmarkRun {
 
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
-    public List<Statistics> run(int rate, int connections, int threads, String urlBaseParam, Duration duration, Duration warmUpDuration) {
+    public List<Statistics> run(int rate, int connections, int threads, String urlBaseParam, Duration duration, Duration warmUpDuration, Duration timeout) {
 
         URL urlBase;
         try {
@@ -57,6 +60,11 @@ public class BenchmarkRun {
                         protected void initChannel(SocketChannel ch) {
 
                             ChannelPipeline p = ch.pipeline();
+
+                            if (timeout != null) {
+                                p.addLast(new ReadTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
+                                p.addLast(new WriteTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
+                            }
 
                             // Monitor open and close connections
                             p.addLast(new ChannelInboundHandlerAdapter() {

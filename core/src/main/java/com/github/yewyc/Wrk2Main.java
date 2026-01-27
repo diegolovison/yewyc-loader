@@ -25,7 +25,7 @@ public class Wrk2Main {
             params.put(args[i].substring(2), args[i + 1]);
         }
 
-        int timeout = Integer.parseInt(params.get("timeout").replace("s", ""));
+        Duration timeout = Duration.ofSeconds(Integer.parseInt(params.get("timeout").replace("s", "")));
         int threads = Integer.parseInt(params.get("threads"));
         int connections = Integer.parseInt(params.get("connections"));;
         int duration = Integer.parseInt(params.get("duration").replace("s", ""));
@@ -34,8 +34,7 @@ public class Wrk2Main {
 
         BenchmarkBuilder builder = new BenchmarkBuilder()
                 .duration(duration).connections(connections).threads(threads).rate(rate)
-                .urlBase(url)
-                .warmUpDuration(6);
+                .urlBase(url).timeout(timeout).warmUpDuration(6);
         try (Benchmark benchmark =  builder.build()) {
             benchmark
                 .start()

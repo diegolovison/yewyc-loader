@@ -10,6 +10,7 @@ public class BenchmarkBuilder {
     private String urlBase;
     private int rate;
     private Duration warmUpDuration;
+    private Duration timeout;
 
     public BenchmarkBuilder threads(int threads) {
         this.threads = threads;
@@ -41,6 +42,11 @@ public class BenchmarkBuilder {
         return this;
     }
 
+    public BenchmarkBuilder timeout(Duration timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+
     public Benchmark build() {
         if (threads < 0) {
             throw new IllegalStateException("threads must be >= 0");
@@ -54,6 +60,6 @@ public class BenchmarkBuilder {
         if (urlBase == null) {
             throw new IllegalStateException("urlBase must not be null");
         }
-        return new Benchmark(threads, duration, rate, connections, urlBase, warmUpDuration);
+        return new Benchmark(threads, duration, rate, connections, urlBase, warmUpDuration, timeout);
     }
 }
