@@ -20,12 +20,6 @@ import java.util.function.Consumer;
 
 public class Benchmark implements Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(Benchmark.class);
-
-    private static final AttributeKey<Boolean> firedAttributeKey = AttributeKey.newInstance("fired");
-
-    protected final List<WeightTask> weightTasks = new ArrayList<>();
-
     private final int threads;
     private final Duration duration;
     private final int rate;
@@ -50,18 +44,6 @@ public class Benchmark implements Closeable {
         this.connections = connections;
         this.urlBase = urlBase;
         this.warmUpDuration = warmUpDuration;
-    }
-
-    public Benchmark addTask(WeightTask... tasks) {
-        for (WeightTask task : tasks) {
-            this.weightTasks.add(task);
-        }
-        return this;
-    }
-
-    public Benchmark addTask(List<WeightTask> weightTasks) {
-        this.weightTasks.addAll(weightTasks);
-        return this;
     }
 
     public Benchmark start() throws InterruptedException {
