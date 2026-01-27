@@ -171,6 +171,10 @@ public class BenchmarkRun {
             if (msg.status().code() != 200) {
                 this.errorCount += 1;
             }
+            if (log.isTraceEnabled()) {
+                String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
+                log.trace("Response [" + msg.status().code() + "]: " + responseBody);
+            }
 
             ctx.channel().attr(beginAttributeKey).set(null);
             //ctx.channel().attr(firedAttributeKey).set(null);

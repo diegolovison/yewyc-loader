@@ -19,7 +19,9 @@ public class LocalHttpServer {
     static class HelloHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            t.sendResponseHeaders(200, 0);
+            String response = "ok!";
+            t.sendResponseHeaders(200, response.length());
+            t.getResponseBody().write(response.getBytes());
             t.getResponseBody().close();
         }
     }
