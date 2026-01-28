@@ -142,7 +142,8 @@ public class BenchmarkRun {
         });
         log.info("Starting the phase: " + name);
         listeners.forEach(h -> h.start(name));
-        Thread.sleep(duration.toMillis());
+        // plusSeconds(1) because it will run until X times and we wish to capture the responses withing that time
+        Thread.sleep(duration.plusSeconds(1).toMillis());
         listeners.forEach(FixedRateLoadGenerator::stop);
 
         List<Statistics> stats = new ArrayList<>();
