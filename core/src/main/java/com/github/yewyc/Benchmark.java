@@ -1,6 +1,7 @@
 package com.github.yewyc;
 
 import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.StatisticsPlot;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Figure;
 import tech.tablesaw.plotly.components.Grid;
@@ -54,11 +55,6 @@ public class Benchmark implements Closeable {
         return this;
     }
 
-    public Benchmark generateReport() {
-        this.generateReport(Statistics::printStatistics);
-        return this;
-    }
-
     public Benchmark generateReport(Consumer<Statistics> consumer) {
         if (tasks.isEmpty()) {
             throw new RuntimeException("No tasks have been executed");
@@ -74,7 +70,7 @@ public class Benchmark implements Closeable {
         // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
         int i = 1;
         for (Statistics stats : tasks) {
-            PlotData plotData = stats.plot(i);
+            PlotData plotData = StatisticsPlot.plot(stats, i);
             traces.add(plotData.trace);
             i += 1;
         }

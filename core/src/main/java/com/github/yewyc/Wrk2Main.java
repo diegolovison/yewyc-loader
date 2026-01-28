@@ -59,10 +59,10 @@ public class Wrk2Main {
 
         @Override
         public void accept(Statistics stats) {
-            RateStatistics throughput = RateStatistics.fromThroughput(stats.getTotalRequests());
-            RateStatistics latency = RateStatistics.fromLatency(stats.getHistogram());
+            RateStatistics throughput = stats.getThroughput();
+            RateStatistics latency = stats.getLatency();
 
-            double duration = Math.max(0.001, (double) stats.duration());
+            double duration = stats.duration();
 
             System.out.println("Running " + String.format("%8.2f", duration) + "s " + stats.getName() + " @ " + url);
             System.out.println("  " + threads + " threads and " + connections + " connections");
@@ -88,6 +88,19 @@ public class Wrk2Main {
             System.out.println("Requests/sec: " + String.format("%8.2f", throughput.totalSum / duration));
             System.out.println("Transfer/sec:  __MB");
             System.out.println("Errors: " + stats.getTotalErrors());
+
+            System.out.println("-----");
+
+            double[][] xy = stats.getXY();
+            double[] x = xy[0];
+            double[] y = xy[1];
+            double[] counter = xy[2];
+
+            for (int i = 0; i < x.length; i++) {
+                System.out.println((int) x[i] + " (" + (int) counter[i] + ")=" + String.format("%14.2f ", y[i]) + "ms");
+            }
+
+            System.out.println("-----");
         }
     }
 }

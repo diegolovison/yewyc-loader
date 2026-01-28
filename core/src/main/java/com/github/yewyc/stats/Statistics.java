@@ -1,22 +1,19 @@
 package com.github.yewyc.stats;
 
-import com.github.yewyc.PlotData;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
-import tech.tablesaw.plotly.traces.ScatterTrace;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static tech.tablesaw.plotly.traces.ScatterTrace.Fill.TO_ZERO_Y;
 
 public class Statistics {
 
     public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     public static final int numberOfSignificantValueDigits = 3;
-    public static final long scale = TimeUnit.MILLISECONDS.toNanos(1);
+    public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
 
     private StatisticsInfo info;
     private List<StatisticsInfo> all;
@@ -31,17 +28,61 @@ public class Statistics {
         this.all.add(stats.info);
     }
 
-    public Collection<Long> getTotalRequests() {
-        List<Long> totalRequests = new ArrayList<>();
-        for (StatisticsInfo info : this.all) {
-            for (Histogram histogram : info.histograms) {
-                totalRequests.add(histogram.getTotalCount());
-            }
-        }
-        return totalRequests;
+    public RateStatistics getThroughput() {
+        Collection<Long> dataset = getTotalRequests();
+        if (dataset.isEmpty()) return new RateStatistics(0, 0, 0, 0, 0, 0);
+
+        // 1. Basic Stats
+        DoubleSummaryStatistics stats = dataset.stream()
+                .mapToDouble(Long::doubleValue)
+                .summaryStatistics();
+
+        double mean = stats.getAverage();
+        double max = stats.getMax();
+        long sum = (long) stats.getSum();
+        long count = stats.getCount();
+
+        // 2. Std Dev
+        double variance = dataset.stream()
+                .mapToDouble(s -> Math.pow(s - mean, 2))
+                .sum() / count;
+        double stdDev = Math.sqrt(variance);
+
+        // 3. % Within Stdev
+        long countWithin = dataset.stream()
+                .filter(s -> s >= (mean - stdDev) && s <= (mean + stdDev))
+                .count();
+        double pct = (countWithin * 100.0) / count;
+
+        return new RateStatistics(mean, max, stdDev, pct, sum, count);
     }
 
-    public long duration() {
+    public RateStatistics getLatency() {
+        AbstractHistogram histogram = getHistogram();
+        if (histogram.getTotalCount() == 0) return new RateStatistics(0, 0, 0, 0, 0, 0);
+
+        // 1. Basic Stats directly from Histogram
+        double mean = histogram.getMean(); // Note: HdrHistogram mean is in raw units (nanos/micros)
+        double max = histogram.getMaxValue();
+        double stdDev = histogram.getStdDeviation();
+        long totalCount = histogram.getTotalCount();
+
+        // 2. % Within Stdev (Iterating buckets)
+        double lower = mean - stdDev;
+        double upper = mean + stdDev;
+        long sumWithin = 0;
+
+        for (var value : histogram.allValues()) {
+            if (value.getValueIteratedTo() >= lower && value.getValueIteratedTo() <= upper) {
+                sumWithin += value.getCountAddedInThisIterationStep();
+            }
+        }
+        double pct = (sumWithin * 100.0) / totalCount;
+
+        return new RateStatistics(mean, max, stdDev, pct, 0, totalCount);
+    }
+
+    public double duration() {
         long start = Long.MAX_VALUE;
         long end = Long.MIN_VALUE;
         for (StatisticsInfo info : this.all) {
@@ -52,21 +93,11 @@ public class Statistics {
                 end = info.end;
             }
         }
-        return (end - start) / 1000;
+        return (end - start) / 1000.0;
     }
 
     public String getName() {
         return this.all.getFirst().name;
-    }
-
-    public AbstractHistogram getHistogram() {
-        Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
-        for (StatisticsInfo info : this.all) {
-            for (Histogram histogram : info.histograms) {
-                latencyHistogram.add(histogram);
-            }
-        }
-        return latencyHistogram;
     }
 
     public int getTotalErrors() {
@@ -77,83 +108,56 @@ public class Statistics {
         return totalErrors;
     }
 
-    public void printStatistics() {
-        AbstractHistogram histogram = this.getHistogram();
-        long totalRequests = this.getTotalRequests().stream().mapToLong(Long::longValue).sum();
-        long totalErrors = this.getTotalErrors();
-        System.out.println("Task: " + info.name);
-        System.out.println("\t======= Response time =======");
-        System.out.println("\t50thPercentile(ms): " + histogram.getValueAtPercentile(50) / scale);
-        System.out.println("\t90thPercentile(ms): " + histogram.getValueAtPercentile(90) / scale);
-        System.out.println("\t95thPercentile(ms): " + histogram.getValueAtPercentile(95) / scale);
-        System.out.println("\t99thPercentile(ms): " + histogram.getValueAtPercentile(99) / scale);
-        System.out.println("\t99.9thPercentile(ms): " + histogram.getValueAtPercentile(99.9) / scale);
-        System.out.println("\t99.99thPercentile(ms): " + histogram.getValueAtPercentile(99.99) / scale);
-        System.out.println("\t======== Info ========");
-        System.out.println("\tMin(ms): " + (histogram.getMinValue() / scale));
-        System.out.println("\tMax(ms): " + (histogram.getMaxValue() / scale));
-        System.out.println("\tMean(ms): " + (histogram.getMean() / scale));
-        System.out.println("\tStd Dev(ms): " + (histogram.getStdDeviation() / scale));
-        System.out.println("\tTotal requests: " + totalRequests);
-        System.out.println("\tTotal errors: " + totalErrors);
-        System.out.println("\tDuration(sec): " + this.duration());
-        System.out.println("\t---");
-    }
-
-    public PlotData plot(int chartIndex) {
+    public double[][] getXY() {
         int maxTotal = Integer.MIN_VALUE;
         for (StatisticsInfo info : all) {
-            if (info.histograms.size() > maxTotal) {
-                maxTotal = info.histograms.size();
-            }
+            maxTotal = Math.max(maxTotal, info.histograms.size());
         }
         double[] xData = new double[maxTotal];
         double[] yData = new double[maxTotal];
+        double[] counter = new double[maxTotal];
         for (int i = 0; i < maxTotal; i++) {
             xData[i] = (double) i + 1;
-            double weightedTimeSum = 0; // Accumulates (Mean * Count)
-            long totalCountAtSecond = 0;
 
+            Histogram aggregate = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
+
+            boolean hasData = false;
             for (StatisticsInfo info : all) {
                 if (i < info.histograms.size()) {
                     Histogram h = info.histograms.get(i);
-                    long count = h.getTotalCount();
-                    if (count > 0) {
-                        weightedTimeSum += (h.getMean() * count);
-                        totalCountAtSecond += count;
+                    counter[i] += h.getTotalCount();
+                    if (h.getTotalCount() > 0) {
+                        aggregate.add(h);
+                        hasData = true;
                     }
                 }
             }
-
-            if (totalCountAtSecond > 0) {
-                double globalMeanRaw = weightedTimeSum / totalCountAtSecond;
-                yData[i] = globalMeanRaw / (double) scale;
+            if (hasData) {
+                yData[i] = aggregate.getMean() / scale;
             } else {
                 yData[i] = 0.0;
             }
         }
-        ScatterTrace trace = ScatterTrace.builder(xData, yData)
-                .mode(ScatterTrace.Mode.LINE)
-                .name(this.info.name)
-                .xAxis("x" + chartIndex).yAxis("y" + chartIndex)
-                .fill(TO_ZERO_Y)
-                .build();
-        return new PlotData(xData, yData, trace);
+        return new double[][]{xData, yData, counter};
     }
 
-    private static final class StatisticsInfo {
-        private final String name;
-        private final long start;
-        private final long end;
-        private final List<Histogram> histograms;
-        private final List<Integer> errors;
-
-        public StatisticsInfo(String name, long start, long end, List<Histogram> histograms, List<Integer> errors) {
-            this.name = name;
-            this.start = start;
-            this.end = end;
-            this.histograms = histograms;
-            this.errors = errors;
+    private AbstractHistogram getHistogram() {
+        Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
+        for (StatisticsInfo info : this.all) {
+            for (Histogram histogram : info.histograms) {
+                latencyHistogram.add(histogram);
+            }
         }
+        return latencyHistogram;
+    }
+
+    private Collection<Long> getTotalRequests() {
+        List<Long> totalRequests = new ArrayList<>();
+        for (StatisticsInfo info : this.all) {
+            for (Histogram histogram : info.histograms) {
+                totalRequests.add(histogram.getTotalCount());
+            }
+        }
+        return totalRequests;
     }
 }
