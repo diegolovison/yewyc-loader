@@ -1,6 +1,6 @@
 package com.github.yewyc.benchmark;
 
-import com.github.yewyc.channel.RunChannelInboundHandler;
+import com.github.yewyc.channel.FixedRateLoadGenerator;
 import com.github.yewyc.stats.Statistics;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -98,7 +98,7 @@ public class BenchmarkRun {
                                 }
                             });
 
-                            p.addLast("run-handler", new RunChannelInboundHandler(urlBase, ch.read(), intervalNs));
+                            p.addLast("run-handler", new FixedRateLoadGenerator(urlBase, ch.read(), intervalNs));
                         }
                     });
 
@@ -135,18 +135,18 @@ public class BenchmarkRun {
      * block operation
      */
     private Statistics runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
-        List<RunChannelInboundHandler> listeners = new ArrayList<>();
+        List<FixedRateLoadGenerator> listeners = new ArrayList<>();
         channels.forEach(ch -> {
-            RunChannelInboundHandler handler = (RunChannelInboundHandler) ch.pipeline().get("run-handler");
+            FixedRateLoadGenerator handler = (FixedRateLoadGenerator) ch.pipeline().get("run-handler");
             listeners.add(handler);
         });
         log.info("Starting the phase: " + name);
         listeners.forEach(h -> h.start(name));
         Thread.sleep(duration.toMillis());
-        listeners.forEach(RunChannelInboundHandler::stop);
+        listeners.forEach(FixedRateLoadGenerator::stop);
 
         List<Statistics> stats = new ArrayList<>();
-        for (RunChannelInboundHandler listener : listeners) {
+        for (FixedRateLoadGenerator listener : listeners) {
             stats.add(listener.collectStatistics());
         }
         Statistics stat = stats.getFirst();
