@@ -1,5 +1,7 @@
 package com.github.yewyc;
 
+import com.github.yewyc.benchmark.Benchmark;
+import com.github.yewyc.benchmark.BenchmarkBuilder;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.Statistics;
 

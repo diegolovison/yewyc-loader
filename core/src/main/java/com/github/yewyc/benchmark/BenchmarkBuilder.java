@@ -1,4 +1,4 @@
-package com.github.yewyc;
+package com.github.yewyc.benchmark;
 
 import java.time.Duration;
 
@@ -60,6 +60,6 @@ public class BenchmarkBuilder {
         if (urlBase == null) {
             throw new IllegalStateException("urlBase must not be null");
         }
-        return new Benchmark(threads, duration, rate, connections, urlBase, warmUpDuration, timeout);
+        return new Benchmark(new BenchmarkRecord(threads, duration, rate, connections, urlBase, warmUpDuration, timeout));
     }
 }

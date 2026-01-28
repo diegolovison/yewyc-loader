@@ -1,4 +1,4 @@
-package com.github.yewyc;
+package com.github.yewyc.benchmark;
 
 import com.github.yewyc.channel.RunChannelInboundHandler;
 import com.github.yewyc.stats.Statistics;
@@ -31,11 +31,11 @@ public class BenchmarkRun {
 
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
-    public List<Statistics> run(int rate, int connections, int threads, String urlBaseParam, Duration duration, Duration warmUpDuration, Duration timeout) {
+    public List<Statistics> run(BenchmarkRecord record) {
 
         URL urlBase;
         try {
-            urlBase = URI.create(urlBaseParam).toURL();
+            urlBase = URI.create(record.urlBase()).toURL();
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
@@ -43,17 +43,17 @@ public class BenchmarkRun {
         List<Statistics> tasks = new ArrayList<>();
 
         long intervalNs;
-        if (rate == 0) {
+        if (record.isClosedModel()) {
             intervalNs = 0;
             log.info("Benchmark initialization with a closed model");
         } else {
             // each instance of StatsChannelInboundHandler is a new class
-            double requestsPerSecondPerConnection = (double) rate / connections;
+            double requestsPerSecondPerConnection = record.requestsPerSecondPerConnection();
             intervalNs = (long) (1_000_000_000.0 / requestsPerSecondPerConnection);
-            log.info("Benchmark initialization with an open model. requests_per_second_per_connection=" + requestsPerSecondPerConnection + ", max_requests_warmup_phase=" + (requestsPerSecondPerConnection * connections * warmUpDuration.toSeconds()) + ", max_requests_test_phase=" + (requestsPerSecondPerConnection * connections * duration.toSeconds()));
+            log.info("Benchmark initialization with an open model. requests_per_second_per_connection=" + requestsPerSecondPerConnection + ", max_requests_warmup_phase=" + (record.expectedWarmUpRequests()) + ", max_requests_test_phase=" + (record.expectedTestRequests()));
         }
 
-        EventLoopGroup group = new NioEventLoopGroup(threads);
+        EventLoopGroup group = new NioEventLoopGroup(record.threads());
         try {
             Bootstrap b = new Bootstrap();
             b.group(group).channel(NioSocketChannel.class)
@@ -63,9 +63,9 @@ public class BenchmarkRun {
 
                             ChannelPipeline p = ch.pipeline();
 
-                            if (timeout != null) {
-                                p.addLast(new ReadTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
-                                p.addLast(new WriteTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
+                            if (record.hasTimeout()) {
+                                p.addLast(new ReadTimeoutHandler(record.timeout().toSeconds(), TimeUnit.SECONDS));
+                                p.addLast(new WriteTimeoutHandler(record.timeout().toSeconds(), TimeUnit.SECONDS));
                             }
 
                             // Monitor open and close connections
@@ -104,14 +104,14 @@ public class BenchmarkRun {
                     });
 
             List<Channel> channels = new ArrayList<>();
-            for (int i = 0; i < connections; i++) {
+            for (int i = 0; i < record.connections(); i++) {
                 Channel channel = b.connect(urlBase.getHost(), urlBase.getPort()).sync().channel();
                 channels.add(channel);
             }
-            if (warmUpDuration != null) {
-                tasks.add(runWarmupPhase(channels, "warm-up", warmUpDuration));
+            if (record.hasWarmUp()) {
+                tasks.add(runWarmupPhase(channels, "warm-up", record.warmUpDuration()));
             }
-            tasks.add(runTestPhase(channels, "test", duration));
+            tasks.add(runTestPhase(channels, "test", record.duration()));
 
             group.shutdownGracefully();
             group.terminationFuture().sync();
