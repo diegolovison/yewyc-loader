@@ -1,7 +1,8 @@
 package com.github.yewyc;
 
+import com.github.yewyc.plot.PlotData;
 import com.github.yewyc.stats.Statistics;
-import com.github.yewyc.stats.StatisticsPlot;
+import com.github.yewyc.plot.StatisticsPlot;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Figure;
 import tech.tablesaw.plotly.components.Grid;
@@ -66,24 +67,7 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark plot() {
-        List<Trace> traces = new ArrayList<>();
-        // `i` is 1 because of https://github.com/jtablesaw/tablesaw/issues/1284
-        int i = 1;
-        for (Statistics stats : tasks) {
-            PlotData plotData = StatisticsPlot.plot(stats, i);
-            traces.add(plotData.trace);
-            i += 1;
-        }
-        return this.plot(traces);
-    }
-
-    protected Benchmark plot(List<Trace> traces) {
-        if (traces.size() > 0) {
-            Grid grid = Grid.builder().columns(1).rows(traces.size()).pattern(Grid.Pattern.INDEPENDENT).build();
-            Layout layout = Layout.builder().width(1700).height(800).title("Response time mean(ms)").grid(grid).build();
-            Figure figure = new Figure(layout, traces.stream().toArray(Trace[]::new));
-            Plot.show(figure, new File("/tmp/report-" + UUID.randomUUID() + ".html"));
-        }
+        StatisticsPlot.plot(tasks);
         return this;
     }
 

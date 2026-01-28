@@ -1,4 +1,4 @@
-package com.github.yewyc;
+package com.github.yewyc.plot;
 
 import tech.tablesaw.plotly.traces.ScatterTrace;
 
