@@ -55,6 +55,8 @@ public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHt
         this.req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, this.urlBase.getPath(), Unpooled.EMPTY_BUFFER);
         this.req.headers().set(HttpHeaderNames.HOST, this.urlBase.getHost());
         this.req.headers().set(HttpHeaderNames.CONNECTION, "keep-alive");
+
+        this.reset();
     }
 
     @Override
@@ -90,16 +92,12 @@ public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHt
     }
 
     public void start(String name) {
-        this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
-        this.running = true;
+        this.reset();
+
+        this.name = name;
         this.start = System.currentTimeMillis();
         this.startIntendedTime = System.nanoTime();
-        this.lastRecordedTimeForGroupingHistograms = 0;
-        this.errorCount = 0;
-        this.i = 0;
-        this.histograms = new ArrayList<>();
-        this.errors = new ArrayList<>();
-        this.name = name;
+        this.running = true;
 
         this.sendRequest(this.channel);
     }
@@ -124,6 +122,22 @@ public class RunChannelInboundHandler extends SimpleChannelInboundHandler<FullHt
     public void stop() {
         this.running = false;
         this.end = System.currentTimeMillis();
+    }
+
+    /*
+     * initialize or reset the values
+     */
+    private void reset() {
+        this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
+        this.lastRecordedTimeForGroupingHistograms = 0;
+        this.errorCount = 0;
+        this.i = 0;
+        this.histograms = new ArrayList<>();
+        this.errors = new ArrayList<>();
+
+        this.start = 0;
+        this.startIntendedTime = 0;
+        this.end = 0;
     }
 
     public Statistics collectStatistics() {

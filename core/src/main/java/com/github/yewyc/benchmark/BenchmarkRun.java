@@ -47,9 +47,8 @@ public class BenchmarkRun {
             intervalNs = 0;
             log.info("Benchmark initialization with a closed model");
         } else {
-            // each instance of StatsChannelInboundHandler is a new class
             double requestsPerSecondPerConnection = record.requestsPerSecondPerConnection();
-            intervalNs = (long) (1_000_000_000.0 / requestsPerSecondPerConnection);
+            intervalNs = (long) (Duration.ofSeconds(1).toNanos() / requestsPerSecondPerConnection);
             log.info("Benchmark initialization with an open model. requests_per_second_per_connection=" + requestsPerSecondPerConnection + ", max_requests_warmup_phase=" + (record.expectedWarmUpRequests()) + ", max_requests_test_phase=" + (record.expectedTestRequests()));
         }
 
