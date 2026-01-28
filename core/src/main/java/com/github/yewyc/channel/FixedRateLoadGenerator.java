@@ -30,8 +30,8 @@ import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
 public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
 
     private static final Logger log = LoggerFactory.getLogger(FixedRateLoadGenerator.class);
+    private static final long nan = 0;
 
-    private final URL urlBase;
     private final Channel channel;
     private final long intervalNs;
     private final FullHttpRequest req;
@@ -52,11 +52,10 @@ public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttp
     private final Queue<Long> latencyQueue = new ArrayDeque<>();
 
     public FixedRateLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
-        this.urlBase = urlBase;
         this.channel = channel;
         this.intervalNs = intervalNs;
-        this.req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, this.urlBase.getPath(), Unpooled.EMPTY_BUFFER);
-        this.req.headers().set(HttpHeaderNames.HOST, this.urlBase.getHost());
+        this.req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, urlBase.getPath(), Unpooled.EMPTY_BUFFER);
+        this.req.headers().set(HttpHeaderNames.HOST, urlBase.getHost());
         this.req.headers().set(HttpHeaderNames.CONNECTION, "keep-alive");
 
         this.eventLoop = channel.eventLoop();
@@ -64,21 +63,18 @@ public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttp
 
     public void start(String name) {
         this.reset();
-
         this.name = name;
-        this.start = System.currentTimeMillis();
-        this.startIntendedTime = System.nanoTime();
         this.running = true;
-
-        if (eventLoop.inEventLoop()) {
-            loopSend();
-        } else {
-            eventLoop.execute(this::loopSend);
-        }
+        assert !eventLoop.inEventLoop();
+        eventLoop.execute(this::loopSend);
     }
 
     private void loopSend() {
         if (!running) return;
+        if (startIntendedTime == nan) {
+            this.start = System.currentTimeMillis();
+            this.startIntendedTime = System.nanoTime();
+        }
         long intendedTime = startIntendedTime + (i * this.intervalNs);
         long now = System.nanoTime();
         long delayNs = intendedTime - now;
@@ -130,6 +126,7 @@ public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttp
 
     public void stop() {
         this.running = false;
+        assert this.end == nan;
         this.end = System.currentTimeMillis();
     }
 
@@ -141,9 +138,9 @@ public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttp
         this.histograms = new ArrayList<>();
         this.errors = new ArrayList<>();
 
-        this.start = 0;
-        this.startIntendedTime = 0;
-        this.end = 0;
+        this.start = nan;
+        this.startIntendedTime = nan;
+        this.end = nan;
 
         this.latencyQueue.clear();
     }
