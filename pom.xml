@@ -19,6 +19,7 @@
       <jgroups.version>5.4.4.Final</jgroups.version>
       <HdrHistogram.version>2.2.2</HdrHistogram.version>
       <netty.version>4.2.9.Final</netty.version>
+      <blockhound.version>1.0.8.RELEASE</blockhound.version>
   </properties>
 
   <build>

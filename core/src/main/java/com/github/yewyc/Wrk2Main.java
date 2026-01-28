@@ -15,7 +15,12 @@ import static com.github.yewyc.stats.Statistics.scale;
 // -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
 public class Wrk2Main {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
+
+        boolean detectBlockingOperation = System.getProperty("detectBlockingOperation", "false").equals("true");
+        if (detectBlockingOperation) {
+            reactor.blockhound.BlockHound.install();
+        }
 
         System.out.println("Starting Wrk2Main: " + String.join(" ", args));
 
