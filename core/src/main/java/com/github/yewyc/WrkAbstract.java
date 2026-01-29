@@ -12,10 +12,9 @@ import java.util.function.Consumer;
 
 import static com.github.yewyc.stats.Statistics.scale;
 
-// -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
-public class Wrk2Main {
+public abstract class WrkAbstract {
 
-    public static void main(String[] args) {
+    protected void exec(String[] args) {
 
         boolean detectBlockingOperation = System.getProperty("detectBlockingOperation", "false").equals("true");
         if (detectBlockingOperation) {
@@ -45,14 +44,17 @@ public class Wrk2Main {
                 .duration(duration).connections(connections).threads(threads).rate(rate)
                 .urlBase(url).timeout(timeout).warmUpDuration(6);
         try (Benchmark benchmark =  builder.build()) {
+            validate(benchmark);
             benchmark
-                .start()
-                .generateReport(new WrkStats(threads, connections, url))
-                .plot();
+                    .start()
+                    .generateReport(new WrkAbstract.WrkStats(threads, connections, url))
+                    .plot();
         }
     }
 
-    private static class WrkStats implements Consumer<Statistics> {
+    protected abstract void validate(Benchmark benchmark);
+
+    protected static class WrkStats implements Consumer<Statistics> {
 
         private int threads;
         private int connections;

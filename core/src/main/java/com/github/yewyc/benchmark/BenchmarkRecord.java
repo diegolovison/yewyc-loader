@@ -33,9 +33,6 @@ public record BenchmarkRecord(
         if (duration == null || duration.isZero() || duration.isNegative()) {
             throw new IllegalArgumentException("duration must be positive and non-null");
         }
-        if (rate < 0) {
-            throw new IllegalArgumentException("rate must be >= 0, got: " + rate);
-        }
         if (connections <= 0) {
             throw new IllegalArgumentException("connections must be greater than 0, got: " + connections);
         }

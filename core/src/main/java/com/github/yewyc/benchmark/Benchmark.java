@@ -45,4 +45,8 @@ public class Benchmark implements Closeable {
     @Override
     public void close() {
     }
+
+    public BenchmarkRecord getRecord() {
+        return record;
+    }
 }
