@@ -91,7 +91,16 @@ public class FixedRateLoadGenerator extends SimpleChannelInboundHandler<FullHttp
         if (!channel.isWritable()) {
             log.warn("Channel not writable! Client is overloaded.");
         }
-        // within event loop and multiple writes
+
+        /*
+         * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
+         * When you send multiple requests in parallel (pipelining), the second request will overwrite the
+         * start time of the first request.
+         *
+         * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
+         * you should use a simple Queue instead of a channel attribute.
+         *
+         */
         this.latencyQueue.add(intendedTime);
         channel.writeAndFlush(req.retainedDuplicate());
     }
