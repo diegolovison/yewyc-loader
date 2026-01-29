@@ -1,6 +1,8 @@
 package com.github.yewyc.benchmark;
 
+import com.github.yewyc.channel.AbstractLoadGenerator;
 import com.github.yewyc.channel.FixedRateLoadGenerator;
+import com.github.yewyc.channel.LoadGenerator;
 import com.github.yewyc.stats.Statistics;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -98,7 +100,11 @@ public class BenchmarkRun {
                                 }
                             });
 
-                            p.addLast("run-handler", new FixedRateLoadGenerator(urlBase, ch.read(), intervalNs));
+                            if (record.isClosedModel()) {
+                                p.addLast("run-handler", new LoadGenerator(urlBase, ch.read()));
+                            } else {
+                                p.addLast("run-handler", new FixedRateLoadGenerator(urlBase, ch.read(), intervalNs));
+                            }
                         }
                     });
 
@@ -135,19 +141,19 @@ public class BenchmarkRun {
      * block operation
      */
     private Statistics runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
-        List<FixedRateLoadGenerator> listeners = new ArrayList<>();
+        List<AbstractLoadGenerator> listeners = new ArrayList<>();
         channels.forEach(ch -> {
-            FixedRateLoadGenerator handler = (FixedRateLoadGenerator) ch.pipeline().get("run-handler");
+            AbstractLoadGenerator handler = (AbstractLoadGenerator) ch.pipeline().get("run-handler");
             listeners.add(handler);
         });
         log.info("Starting the phase: " + name);
         listeners.forEach(h -> h.start(name));
         // plusSeconds(1) because it will run until X times and we wish to capture the responses withing that time
         Thread.sleep(duration.plusSeconds(1).toMillis());
-        listeners.forEach(FixedRateLoadGenerator::stop);
+        listeners.forEach(AbstractLoadGenerator::stop);
 
         List<Statistics> stats = new ArrayList<>();
-        for (FixedRateLoadGenerator listener : listeners) {
+        for (AbstractLoadGenerator listener : listeners) {
             stats.add(listener.collectStatistics());
         }
         Statistics stat = stats.getFirst();
