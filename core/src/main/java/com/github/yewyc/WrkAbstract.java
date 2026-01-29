@@ -1,7 +1,7 @@
 package com.github.yewyc;
 
 import com.github.yewyc.benchmark.Benchmark;
-import com.github.yewyc.benchmark.BenchmarkBuilder;
+import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.Statistics;
 
@@ -40,10 +40,9 @@ public abstract class WrkAbstract {
         int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : 0;
         String url = args[args.length - 1];
 
-        BenchmarkBuilder builder = new BenchmarkBuilder()
-                .duration(duration).connections(connections).threads(threads).rate(rate)
-                .urlBase(url).timeout(timeout).warmUpDuration(6);
-        try (Benchmark benchmark =  builder.build()) {
+        BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, url, Duration.ofSeconds(6), timeout);
+
+        try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {
             validate(benchmark);
             benchmark
                     .start()

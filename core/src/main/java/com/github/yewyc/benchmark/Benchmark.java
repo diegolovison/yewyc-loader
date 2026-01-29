@@ -14,7 +14,7 @@ public class Benchmark implements Closeable {
 
     private final List<Statistics> tasks = new ArrayList<>();
 
-    Benchmark(BenchmarkRecord record) {
+    public Benchmark(BenchmarkRecord record) {
         this.record = record;
     }
 
