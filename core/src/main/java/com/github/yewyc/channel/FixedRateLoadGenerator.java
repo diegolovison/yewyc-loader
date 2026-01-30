@@ -12,6 +12,7 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
     private int i = 0;
+    private long startIntendedTime;
 
     public FixedRateLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
@@ -19,6 +20,9 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
     }
 
     protected void scheduleNextRequest() {
+        if (this.startIntendedTime == nan) {
+            this.startIntendedTime = System.nanoTime();
+        }
         long intendedTime = startIntendedTime + (i * this.intervalNs);
         long now = System.nanoTime();
         long delayNs = intendedTime - now;
@@ -35,6 +39,7 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
     protected void reset() {
         super.reset();
         this.i = 0;
+        this.startIntendedTime = nan;
     }
 
 }

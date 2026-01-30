@@ -80,25 +80,24 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     private static final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
     private static final Logger log = LoggerFactory.getLogger(AbstractLoadGenerator.class);
-    protected static final long nan = 0;
+    protected static final long nan = Long.MIN_VALUE;
 
-    protected final Channel channel;
-    protected final FullHttpRequest req;
+    private final Channel channel;
+    private final FullHttpRequest req;
 
-    protected Recorder recorder;
+    private Recorder recorder;
     // change state outside the event loop and read the state within the event loop
-    protected volatile boolean running = false;
-    protected long start;
-    protected long end;
-    protected long startIntendedTime;
-    protected long lastRecordedTimeForGroupingHistograms = 0;
-    protected int errorCount = 0;
-    protected List<Histogram> histograms;
-    protected List<Integer> errors;
-    protected String name;
+    private volatile boolean running = false;
+    private long start;
+    private long end;
+    private long lastRecordedTimeForGroupingHistograms = 0;
+    private int errorCount = 0;
+    private List<Histogram> histograms;
+    private List<Integer> errors;
+    private String name;
 
     protected final EventLoop eventLoop;
-    protected final Queue<Long> latencyQueue = new ArrayDeque<>();
+    private final Queue<Long> latencyQueue = new ArrayDeque<>();
 
     public AbstractLoadGenerator(URL urlBase, Channel channel) {
         this.channel = channel;
@@ -118,9 +117,8 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     }
 
     private void initializeAndScheduleNextRequest() {
-        if (startIntendedTime == nan) {
+        if (start == nan) {
             this.start = System.currentTimeMillis();
-            this.startIntendedTime = System.nanoTime();
         }
         scheduleNextRequestIfRunning();
     }
@@ -193,7 +191,6 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.errors = new ArrayList<>();
 
         this.start = nan;
-        this.startIntendedTime = nan;
         this.end = nan;
 
         this.latencyQueue.clear();
