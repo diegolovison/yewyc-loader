@@ -2,6 +2,7 @@ package com.github.yewyc.plot;
 
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticPhase;
+import com.github.yewyc.stats.StatisticTick;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Axis;
 import tech.tablesaw.plotly.components.Config;
@@ -17,6 +18,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import static com.github.yewyc.stats.Statistic.scale;
+
 public class StatisticsPlot {
 
     public static void plot(List<StatisticPhase> statistics) {
@@ -26,18 +29,20 @@ public class StatisticsPlot {
 
         for (int i = 0; i < statistics.size(); i++) {
             StatisticPhase statisticPhase = statistics.get(i);
-            double[][] xy = statisticPhase.getXY();
-            double[] latencyRaw = xy[1];
-            double[] throughputRaw = xy[2];
 
-            double[] xValues = new double[latencyRaw.length];
-            double[] latencyValues = new double[latencyRaw.length];
-            double[] throughputValues = new double[latencyRaw.length];
+            List<StatisticTick> statisticTicks =  statisticPhase.getStatisticTicks();
 
-            for (int j = 0; j < latencyRaw.length; j++) {
+            double[] xValues = new double[statisticTicks.size()];
+            double[] latencyValues = new double[statisticTicks.size()];
+            double[] throughputValues = new double[statisticTicks.size()];
+
+            for (int j = 0; j < statisticTicks.size(); j++) {
+
+                StatisticTick statisticTick = statisticTicks.get(j);
+
                 xValues[j] = globalXIndex;
-                latencyValues[j] = latencyRaw[j];
-                throughputValues[j] = throughputRaw[j];
+                latencyValues[j] = statisticTick.latency().getMean() / scale;
+                throughputValues[j] = statisticTick.counter();
                 globalXIndex++;
             }
 

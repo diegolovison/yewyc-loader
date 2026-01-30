@@ -4,7 +4,9 @@ import com.github.yewyc.channel.AbstractLoadGenerator;
 import com.github.yewyc.channel.FixedRateLoadGenerator;
 import com.github.yewyc.channel.LoadGenerator;
 import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
+import com.github.yewyc.stats.StatisticTick;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -149,7 +151,7 @@ public class BenchmarkRun {
         });
         log.info("Starting the phase: " + name);
         long start = System.currentTimeMillis();
-        listeners.forEach(h -> h.start(name, duration));
+        listeners.forEach(h -> h.start(duration));
         Thread.sleep(duration);
         boolean requestsCompleted = false;
         while (!requestsCompleted) {
@@ -171,12 +173,7 @@ public class BenchmarkRun {
         for (AbstractLoadGenerator listener : listeners) {
             stats.add(listener.collectStatistics());
         }
-        Statistic stat = stats.getFirst();
-        for (int i = 1; i < stats.size(); i++) {
-            stat.merge(stats.get(i));
-        }
         log.info("Finished the phase: " + name);
-
-        return new StatisticPhase(name, Duration.ofMillis(end - start), stat);
+        return new StatisticPhase(name, Duration.ofMillis(end - start), StatisticConverter.convert(stats));
     }
 }

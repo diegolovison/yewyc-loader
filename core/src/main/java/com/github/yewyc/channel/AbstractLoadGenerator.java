@@ -71,7 +71,7 @@ import static com.github.yewyc.stats.Statistic.numberOfSignificantValueDigits;
  * </ul>
  *
  * <h2>Thread Safety</h2>
- * All operations are executed on the Netty event loop thread. The {@link #start(String, Duration)}
+ * All operations are executed on the Netty event loop thread. The {@link #start(Duration)}
  * method must be called from outside the event loop and will schedule work appropriately.
  *
  * @see LoadGenerator
@@ -88,13 +88,11 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     private Recorder recorder;
     private boolean running = false;
-    private long start;
     private long end;
     private long lastRecordedTimeForGroupingHistograms = 0;
     private int errorCount = 0;
     private List<Histogram> histograms;
     private List<Integer> errors;
-    private String name;
     private Duration duration;
 
     protected final EventLoop eventLoop;
@@ -109,8 +107,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.eventLoop = channel.eventLoop();
     }
 
-    public void start(String name, Duration duration) {
-        this.name = name;
+    public void start(Duration duration) {
         this.duration = duration;
         assert !eventLoop.inEventLoop();
         eventLoop.execute(this::initializeAndScheduleNextRequest);
@@ -128,8 +125,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.histograms = new ArrayList<>();
         this.errors = new ArrayList<>();
         this.running = true;
-        this.start = System.nanoTime();
-        this.end = this.start + this.duration.toNanos();
+        this.end = System.nanoTime() + this.duration.toNanos();
         scheduleNextRequest();
     }
 

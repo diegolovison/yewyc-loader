@@ -5,6 +5,7 @@ import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticPhase;
+import com.github.yewyc.stats.StatisticTick;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -95,19 +96,12 @@ public abstract class WrkAbstract {
             System.out.println("  " + throughput.totalSum + " requests in " + String.format("%.2f", duration) + "s, __MB read");
             System.out.println("Requests/sec: " + String.format("%8.2f", throughput.totalSum / duration));
             System.out.println("Transfer/sec:  __MB");
-            System.out.println("Errors: " + statisticPhase.getTotalErrors());
 
             System.out.println("-----");
-
-            double[][] xy = statisticPhase.getXY();
-            double[] x = xy[0];
-            double[] y = xy[1];
-            double[] counter = xy[2];
-
-            for (int i = 0; i < x.length; i++) {
-                System.out.println((int) x[i] + " (" + (int) counter[i] + ")=" + String.format("%14.2f ", y[i]) + "ms");
+            for (int i = 0; i < statisticPhase.getStatisticTicks().size(); i++) {
+                StatisticTick tick = statisticPhase.getStatisticTicks().get(i);
+                System.out.println((i + 1) + " (" + tick.counter() + ")=" + String.format("%14.2f ", tick.latency().getMean() / scale) + "ms");
             }
-
             System.out.println("-----");
         }
     }
