@@ -15,17 +15,25 @@ public class Statistic {
     public static final int numberOfSignificantValueDigits = 3;
     public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
 
-    private StatisticsInfo info;
-    private List<StatisticsInfo> all;
+    private final String name;
+    private final long start;
+    private final long end;
+    private final List<Histogram> histograms;
+    private final List<Integer> errors;
+
+    private List<Statistic> all;
 
     public Statistic(String name, long start, long end, List<Histogram> histograms, List<Integer> errors) {
-        this.info = new StatisticsInfo(name, start, end, histograms, errors);
+        this.name = name;
+        this.start = start;
+        this.end = end;
+        this.histograms = histograms;
+        this.errors = errors;
         this.all = new ArrayList<>();
-        this.all.add(this.info);
     }
 
     public void merge(Statistic statistic) {
-        this.all.add(statistic.info);
+        this.all.add(statistic);
     }
 
     public RateStatistics getThroughput() {
@@ -85,7 +93,7 @@ public class Statistic {
     public double duration() {
         long start = Long.MAX_VALUE;
         long end = Long.MIN_VALUE;
-        for (StatisticsInfo info : this.all) {
+        for (Statistic info : this.all) {
             if (info.start < start) {
                 start = info.start;
             }
@@ -102,7 +110,7 @@ public class Statistic {
 
     public int getTotalErrors() {
         int totalErrors = 0;
-        for (StatisticsInfo info : this.all) {
+        for (Statistic info : this.all) {
             totalErrors += info.errors.stream().mapToInt(Integer::intValue).sum();
         }
         return totalErrors;
@@ -110,7 +118,7 @@ public class Statistic {
 
     public double[][] getXY() {
         int maxTotal = Integer.MIN_VALUE;
-        for (StatisticsInfo info : all) {
+        for (Statistic info : all) {
             maxTotal = Math.max(maxTotal, info.histograms.size());
         }
         double[] xData = new double[maxTotal];
@@ -122,7 +130,7 @@ public class Statistic {
             Histogram aggregate = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
 
             boolean hasData = false;
-            for (StatisticsInfo info : all) {
+            for (Statistic info : all) {
                 if (i < info.histograms.size()) {
                     Histogram h = info.histograms.get(i);
                     counter[i] += h.getTotalCount();
@@ -143,7 +151,7 @@ public class Statistic {
 
     private AbstractHistogram getHistogram() {
         Histogram latencyHistogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
-        for (StatisticsInfo info : this.all) {
+        for (Statistic info : this.all) {
             for (Histogram histogram : info.histograms) {
                 latencyHistogram.add(histogram);
             }
@@ -153,7 +161,7 @@ public class Statistic {
 
     private Collection<Long> getTotalRequests() {
         List<Long> totalRequests = new ArrayList<>();
-        for (StatisticsInfo info : this.all) {
+        for (Statistic info : this.all) {
             for (Histogram histogram : info.histograms) {
                 totalRequests.add(histogram.getTotalCount());
             }
