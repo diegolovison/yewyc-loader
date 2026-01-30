@@ -16,13 +16,13 @@ public class LoadGenerator extends AbstractLoadGenerator {
     }
 
     @Override
-    protected void send() {
-        sendRequest(System.nanoTime());
+    protected void scheduleNextRequest() {
+        executeRequest(System.nanoTime());
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
         super.channelRead0(ctx, msg);
-        eventLoop.execute(this::send);
+        eventLoop.execute(this::scheduleNextRequestIfRunning);
     }
 }

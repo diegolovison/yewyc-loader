@@ -18,16 +18,17 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
         this.intervalNs = intervalNs;
     }
 
-    protected void send() {
+    protected void scheduleNextRequest() {
         long intendedTime = startIntendedTime + (i * this.intervalNs);
         long now = System.nanoTime();
         long delayNs = intendedTime - now;
         if (delayNs > 0) {
-            eventLoop.schedule(this::loopSend, delayNs, TimeUnit.NANOSECONDS);
+            eventLoop.schedule(this::scheduleNextRequestIfRunning, delayNs, TimeUnit.NANOSECONDS);
         } else {
-            sendRequest(intendedTime);
+            executeRequest(intendedTime);
             i++;
-            eventLoop.execute(this::loopSend);
+            // TODO adds a small amount of overhead compared to a direct loop but prevent stack overflows from deep recursion
+            eventLoop.execute(this::scheduleNextRequestIfRunning);
         }
     }
 

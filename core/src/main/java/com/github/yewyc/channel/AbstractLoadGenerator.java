@@ -26,6 +26,56 @@ import java.util.Queue;
 import static com.github.yewyc.stats.Statistics.highestTrackableValue;
 import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
 
+/**
+ * Abstract base class for HTTP load generators implementing the Template Method pattern.
+ *
+ * <h2>Architecture Overview</h2>
+ * This class provides the framework for generating HTTP load against a target server,
+ * with subclasses defining the specific scheduling strategy (closed model vs open model).
+ *
+ * <h2>Control Flow</h2>
+ * <pre>
+ * 1. {@link #start(String)} - Public entry point, initializes the generator
+ *    ↓
+ * 2. {@link #initializeAndScheduleNextRequest()} - Private orchestration method
+ *    - Initializes timing on first call
+ *    - Delegates to scheduling strategy
+ *    ↓
+ * 3. {@link #scheduleNextRequest()} - Abstract template method (subclass implements)
+ *    - Defines WHEN to send the next request
+ *    - Closed model: immediately after response
+ *    - Open model: at fixed rate intervals
+ *    ↓
+ * 4. {@link #executeRequest(long)} - Final helper method
+ *    - Performs the actual HTTP request
+ *    - Records timing for latency measurement
+ *    ↓
+ * 5. {@link #channelRead0(ChannelHandlerContext, FullHttpResponse)} - Response handler
+ *    - Records latency and statistics
+ *    - May trigger next request (closed model)
+ * </pre>
+ *
+ * <h2>Extension Points</h2>
+ * Subclasses must implement:
+ * <ul>
+ *   <li>{@link #scheduleNextRequest()} - Define the scheduling strategy</li>
+ * </ul>
+ *
+ * <h2>Load Models</h2>
+ * <ul>
+ *   <li><b>Closed Model</b> ({@link LoadGenerator}): Sends next request immediately after
+ *       receiving response. Maintains constant number of concurrent requests.</li>
+ *   <li><b>Open Model</b> ({@link FixedRateLoadGenerator}): Sends requests at fixed rate
+ *       regardless of responses. Simulates independent user arrivals.</li>
+ * </ul>
+ *
+ * <h2>Thread Safety</h2>
+ * All operations are executed on the Netty event loop thread. The {@link #start(String)}
+ * method must be called from outside the event loop and will schedule work appropriately.
+ *
+ * @see LoadGenerator
+ * @see FixedRateLoadGenerator
+ */
 public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
 
     private static final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
@@ -36,7 +86,8 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     protected final FullHttpRequest req;
 
     protected Recorder recorder;
-    protected boolean running = false;
+    // change state outside the event loop and read the state within the event loop
+    protected volatile boolean running = false;
     protected long start;
     protected long end;
     protected long startIntendedTime;
@@ -63,21 +114,25 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.name = name;
         this.running = true;
         assert !eventLoop.inEventLoop();
-        eventLoop.execute(this::loopSend);
+        eventLoop.execute(this::initializeAndScheduleNextRequest);
     }
 
-    protected void loopSend() {
-        if (!running) return;
+    private void initializeAndScheduleNextRequest() {
         if (startIntendedTime == nan) {
             this.start = System.currentTimeMillis();
             this.startIntendedTime = System.nanoTime();
         }
-        send();
+        scheduleNextRequestIfRunning();
     }
 
-    protected abstract void send();
+    protected final void scheduleNextRequestIfRunning() {
+        if (!running) return;
+        scheduleNextRequest();
+    }
 
-    protected void sendRequest(long intendedTime) {
+    protected abstract void scheduleNextRequest();
+
+    protected final void executeRequest(long intendedTime) {
         if (!channel.isWritable()) {
             log.warn("Channel not writable! Client is overloaded.");
         }
