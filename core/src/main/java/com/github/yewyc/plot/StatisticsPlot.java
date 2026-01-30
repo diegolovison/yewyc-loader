@@ -1,6 +1,6 @@
 package com.github.yewyc.plot;
 
-import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.Statistic;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Axis;
 import tech.tablesaw.plotly.components.Config;
@@ -18,13 +18,13 @@ import java.util.UUID;
 
 public class StatisticsPlot {
 
-    public static void plot(List<Statistics> tasks) {
+    public static void plot(List<Statistic> statistics) {
         List<Trace> allTraces = new ArrayList<>();
 
         double globalXIndex = 1;
 
-        for (int i = 0; i < tasks.size(); i++) {
-            Statistics stats = tasks.get(i);
+        for (int i = 0; i < statistics.size(); i++) {
+            Statistic stats = statistics.get(i);
             double[][] xy = stats.getXY();
             double[] latencyRaw = xy[1];
             double[] throughputRaw = xy[2];

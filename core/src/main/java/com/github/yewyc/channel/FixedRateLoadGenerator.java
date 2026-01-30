@@ -31,7 +31,7 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
         } else {
             executeRequest(intendedTime);
             i++;
-            // TODO adds a small amount of overhead compared to a direct loop but prevent stack overflows from deep recursion
+            // TODO eventLoop.execute adds a small amount of overhead compared to a direct loop but prevent stack overflows from deep recursion
             eventLoop.execute(this::scheduleNextRequestIfRunning);
         }
     }

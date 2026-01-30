@@ -1,7 +1,7 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.plot.StatisticsPlot;
-import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.Statistic;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ public class Benchmark implements Closeable {
 
     private final BenchmarkRecord record;
 
-    private final List<Statistics> tasks = new ArrayList<>();
+    private final List<Statistic> statistics = new ArrayList<>();
 
     public Benchmark(BenchmarkRecord record) {
         this.record = record;
@@ -20,25 +20,22 @@ public class Benchmark implements Closeable {
 
     public Benchmark start() {
         BenchmarkRun r = new BenchmarkRun();
-        List<Statistics> phaseTasks = r.run(this.record);
-        for (Statistics phaseTask : phaseTasks) {
-            this.tasks.add(phaseTask);
-        }
+        this.statistics.addAll(r.run(this.record));
         return this;
     }
 
-    public Benchmark generateReport(Consumer<Statistics> consumer) {
-        if (tasks.isEmpty()) {
+    public Benchmark generateReport(Consumer<Statistic> consumer) {
+        if (statistics.isEmpty()) {
             throw new RuntimeException("No tasks have been executed");
         }
-        for (Statistics stats : tasks) {
-            consumer.accept(stats);
+        for (Statistic statistic : statistics) {
+            consumer.accept(statistic);
         }
         return this;
     }
 
     public Benchmark plot() {
-        StatisticsPlot.plot(tasks);
+        StatisticsPlot.plot(statistics);
         return this;
     }
 

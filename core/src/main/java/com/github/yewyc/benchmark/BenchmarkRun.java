@@ -3,7 +3,7 @@ package com.github.yewyc.benchmark;
 import com.github.yewyc.channel.AbstractLoadGenerator;
 import com.github.yewyc.channel.FixedRateLoadGenerator;
 import com.github.yewyc.channel.LoadGenerator;
-import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.Statistic;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -33,7 +33,7 @@ public class BenchmarkRun {
 
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
-    public List<Statistics> run(BenchmarkRecord record) {
+    public List<Statistic> run(BenchmarkRecord record) {
 
         URL urlBase;
         try {
@@ -42,7 +42,7 @@ public class BenchmarkRun {
             throw new RuntimeException(e);
         }
 
-        List<Statistics> tasks = new ArrayList<>();
+        List<Statistic> statistics = new ArrayList<>();
 
         long intervalNs;
         if (record.isClosedModel()) {
@@ -114,9 +114,9 @@ public class BenchmarkRun {
                 channels.add(channel);
             }
             if (record.hasWarmUp()) {
-                tasks.add(runWarmupPhase(channels, "warm-up", record.warmUpDuration()));
+                statistics.add(runWarmupPhase(channels, "warm-up", record.warmUpDuration()));
             }
-            tasks.add(runTestPhase(channels, "test", record.duration()));
+            statistics.add(runTestPhase(channels, "test", record.duration()));
 
             group.shutdownGracefully();
             group.terminationFuture().sync();
@@ -126,21 +126,21 @@ public class BenchmarkRun {
         }
         log.info("Benchmark finished");
 
-        return tasks;
+        return statistics;
     }
 
-    private Statistics runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private Statistic runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
-    private Statistics runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private Statistic runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
     /*
      * runPhase has block operations
      */
-    private Statistics runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private Statistic runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         List<AbstractLoadGenerator> listeners = new ArrayList<>();
         channels.forEach(ch -> {
             AbstractLoadGenerator handler = (AbstractLoadGenerator) ch.pipeline().get("run-handler");
@@ -164,11 +164,11 @@ public class BenchmarkRun {
             }
         }
 
-        List<Statistics> stats = new ArrayList<>();
+        List<Statistic> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
             stats.add(listener.collectStatistics());
         }
-        Statistics stat = stats.getFirst();
+        Statistic stat = stats.getFirst();
         for (int i = 1; i < stats.size(); i++) {
             stat.merge(stats.get(i));
         }

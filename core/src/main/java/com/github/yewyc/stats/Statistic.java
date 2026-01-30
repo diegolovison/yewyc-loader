@@ -9,7 +9,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class Statistics {
+public class Statistic {
 
     public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     public static final int numberOfSignificantValueDigits = 3;
@@ -18,14 +18,14 @@ public class Statistics {
     private StatisticsInfo info;
     private List<StatisticsInfo> all;
 
-    public Statistics(String name, long start, long end, List<Histogram> histograms, List<Integer> errors) {
+    public Statistic(String name, long start, long end, List<Histogram> histograms, List<Integer> errors) {
         this.info = new StatisticsInfo(name, start, end, histograms, errors);
         this.all = new ArrayList<>();
         this.all.add(this.info);
     }
 
-    public void merge(Statistics stats) {
-        this.all.add(stats.info);
+    public void merge(Statistic statistic) {
+        this.all.add(statistic.info);
     }
 
     public RateStatistics getThroughput() {

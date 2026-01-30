@@ -3,14 +3,14 @@ package com.github.yewyc;
 import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.stats.RateStatistics;
-import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.Statistic;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static com.github.yewyc.stats.Statistics.scale;
+import static com.github.yewyc.stats.Statistic.scale;
 
 public abstract class WrkAbstract {
 
@@ -53,7 +53,7 @@ public abstract class WrkAbstract {
 
     protected abstract void validate(Benchmark benchmark);
 
-    protected static class WrkStats implements Consumer<Statistics> {
+    protected static class WrkStats implements Consumer<Statistic> {
 
         private int threads;
         private int connections;
@@ -66,7 +66,7 @@ public abstract class WrkAbstract {
         }
 
         @Override
-        public void accept(Statistics stats) {
+        public void accept(Statistic stats) {
             RateStatistics throughput = stats.getThroughput();
             RateStatistics latency = stats.getLatency();
 

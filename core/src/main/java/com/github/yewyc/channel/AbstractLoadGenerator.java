@@ -1,6 +1,6 @@
 package com.github.yewyc.channel;
 
-import com.github.yewyc.stats.Statistics;
+import com.github.yewyc.stats.Statistic;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 
-import static com.github.yewyc.stats.Statistics.highestTrackableValue;
-import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
+import static com.github.yewyc.stats.Statistic.highestTrackableValue;
+import static com.github.yewyc.stats.Statistic.numberOfSignificantValueDigits;
 
 /**
  * Abstract base class for HTTP load generators implementing the Template Method pattern.
@@ -196,8 +196,8 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     }
 
-    public Statistics collectStatistics() {
-        return new Statistics(this.name, this.start, this.end, this.histograms, this.errors);
+    public Statistic collectStatistics() {
+        return new Statistic(this.name, this.start, this.end, this.histograms, this.errors);
     }
 
     public boolean hasInflightRequests() {
