@@ -1,6 +1,7 @@
 package com.github.yewyc.plot;
 
 import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticPhase;
 import tech.tablesaw.plotly.Plot;
 import tech.tablesaw.plotly.components.Axis;
 import tech.tablesaw.plotly.components.Config;
@@ -18,14 +19,14 @@ import java.util.UUID;
 
 public class StatisticsPlot {
 
-    public static void plot(List<Statistic> statistics) {
+    public static void plot(List<StatisticPhase> statistics) {
         List<Trace> allTraces = new ArrayList<>();
 
         double globalXIndex = 1;
 
         for (int i = 0; i < statistics.size(); i++) {
-            Statistic stats = statistics.get(i);
-            double[][] xy = stats.getXY();
+            StatisticPhase statisticPhase = statistics.get(i);
+            double[][] xy = statisticPhase.getXY();
             double[] latencyRaw = xy[1];
             double[] throughputRaw = xy[2];
 
@@ -42,14 +43,14 @@ public class StatisticsPlot {
 
             allTraces.add(ScatterTrace.builder(xValues, latencyValues)
                     .mode(ScatterTrace.Mode.LINE)
-                    .name(stats.getName() + " (Lat)")
+                    .name(statisticPhase.getName() + " (Lat)")
                     .build());
 
             allTraces.add(ScatterTrace.builder(xValues, throughputValues)
                     .mode(ScatterTrace.Mode.LINE)
                     .xAxis("x2")
                     .yAxis("y2")
-                    .name(stats.getName() + " (Thr)")
+                    .name(statisticPhase.getName() + " (Thr)")
                     .build());
         }
 

@@ -4,6 +4,7 @@ import com.github.yewyc.channel.AbstractLoadGenerator;
 import com.github.yewyc.channel.FixedRateLoadGenerator;
 import com.github.yewyc.channel.LoadGenerator;
 import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticPhase;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -33,7 +34,7 @@ public class BenchmarkRun {
 
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
-    public List<Statistic> run(BenchmarkRecord record) {
+    public List<StatisticPhase> run(BenchmarkRecord record) {
 
         URL urlBase;
         try {
@@ -42,7 +43,7 @@ public class BenchmarkRun {
             throw new RuntimeException(e);
         }
 
-        List<Statistic> statistics = new ArrayList<>();
+        List<StatisticPhase> statistics = new ArrayList<>();
 
         long intervalNs;
         if (record.isClosedModel()) {
@@ -129,24 +130,25 @@ public class BenchmarkRun {
         return statistics;
     }
 
-    private Statistic runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
-    private Statistic runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
     /*
      * runPhase has block operations
      */
-    private Statistic runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         List<AbstractLoadGenerator> listeners = new ArrayList<>();
         channels.forEach(ch -> {
             AbstractLoadGenerator handler = (AbstractLoadGenerator) ch.pipeline().get("run-handler");
             listeners.add(handler);
         });
         log.info("Starting the phase: " + name);
+        long start = System.currentTimeMillis();
         listeners.forEach(h -> h.start(name, duration));
         Thread.sleep(duration);
         boolean requestsCompleted = false;
@@ -160,9 +162,10 @@ public class BenchmarkRun {
             if (completedRequests == listeners.size()) {
                 requestsCompleted = true;
             } else {
-                Thread.sleep(Duration.ofSeconds(1).toMillis());
+                Thread.sleep(1);
             }
         }
+        long end = System.currentTimeMillis();
 
         List<Statistic> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
@@ -173,6 +176,7 @@ public class BenchmarkRun {
             stat.merge(stats.get(i));
         }
         log.info("Finished the phase: " + name);
-        return stat;
+
+        return new StatisticPhase(name, Duration.ofMillis(end - start), stat);
     }
 }

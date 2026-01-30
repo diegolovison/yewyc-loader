@@ -9,27 +9,25 @@ import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Per connection
+ */
 public class Statistic {
 
     public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     public static final int numberOfSignificantValueDigits = 3;
     public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
 
-    private final String name;
-    private final long start;
-    private final long end;
     private final List<Histogram> histograms;
     private final List<Integer> errors;
 
     private List<Statistic> all;
 
-    public Statistic(String name, long start, long end, List<Histogram> histograms, List<Integer> errors) {
-        this.name = name;
-        this.start = start;
-        this.end = end;
+    public Statistic(List<Histogram> histograms, List<Integer> errors) {
         this.histograms = histograms;
         this.errors = errors;
         this.all = new ArrayList<>();
+        this.all.add(this);
     }
 
     public void merge(Statistic statistic) {
@@ -88,24 +86,6 @@ public class Statistic {
         double pct = (sumWithin * 100.0) / totalCount;
 
         return new RateStatistics(mean, max, stdDev, pct, 0, totalCount);
-    }
-
-    public double duration() {
-        long start = Long.MAX_VALUE;
-        long end = Long.MIN_VALUE;
-        for (Statistic info : this.all) {
-            if (info.start < start) {
-                start = info.start;
-            }
-            if (info.end > end) {
-                end = info.end;
-            }
-        }
-        return (end - start) / 1000.0;
-    }
-
-    public String getName() {
-        return this.all.getFirst().name;
     }
 
     public int getTotalErrors() {

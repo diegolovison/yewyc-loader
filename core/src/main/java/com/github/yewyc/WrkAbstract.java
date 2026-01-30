@@ -4,6 +4,7 @@ import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticPhase;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -53,7 +54,7 @@ public abstract class WrkAbstract {
 
     protected abstract void validate(Benchmark benchmark);
 
-    protected static class WrkStats implements Consumer<Statistic> {
+    protected static class WrkStats implements Consumer<StatisticPhase> {
 
         private int threads;
         private int connections;
@@ -66,13 +67,13 @@ public abstract class WrkAbstract {
         }
 
         @Override
-        public void accept(Statistic stats) {
-            RateStatistics throughput = stats.getThroughput();
-            RateStatistics latency = stats.getLatency();
+        public void accept(StatisticPhase statisticPhase) {
+            RateStatistics throughput = statisticPhase.getThroughput();
+            RateStatistics latency = statisticPhase.getLatency();
 
-            double duration = stats.duration();
+            double duration = statisticPhase.duration().toMillis() / 1_000.0;
 
-            System.out.println("Running " + String.format("%8.2f", duration) + "s " + stats.getName() + " @ " + url);
+            System.out.println("Running " + String.format("%8.2f", duration) + "s " + statisticPhase.getName() + " @ " + url);
             System.out.println("  " + threads + " threads and " + connections + " connections");
             System.out.println("  Thread Stats   Avg      Stdev     Max   +/- Stdev");
 
@@ -94,11 +95,11 @@ public abstract class WrkAbstract {
             System.out.println("  " + throughput.totalSum + " requests in " + String.format("%.2f", duration) + "s, __MB read");
             System.out.println("Requests/sec: " + String.format("%8.2f", throughput.totalSum / duration));
             System.out.println("Transfer/sec:  __MB");
-            System.out.println("Errors: " + stats.getTotalErrors());
+            System.out.println("Errors: " + statisticPhase.getTotalErrors());
 
             System.out.println("-----");
 
-            double[][] xy = stats.getXY();
+            double[][] xy = statisticPhase.getXY();
             double[] x = xy[0];
             double[] y = xy[1];
             double[] counter = xy[2];

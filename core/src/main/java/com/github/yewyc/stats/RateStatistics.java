@@ -1,9 +1,5 @@
 package com.github.yewyc.stats;
 
-import org.HdrHistogram.AbstractHistogram;
-import java.util.Collection;
-import java.util.DoubleSummaryStatistics;
-
 public class RateStatistics {
     public final double mean;
     public final double max;

@@ -197,7 +197,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     }
 
     public Statistic collectStatistics() {
-        return new Statistic(this.name, this.start, this.end, this.histograms, this.errors);
+        return new Statistic(this.histograms, this.errors);
     }
 
     public boolean hasInflightRequests() {
