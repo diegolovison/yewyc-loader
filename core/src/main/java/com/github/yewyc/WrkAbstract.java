@@ -84,11 +84,10 @@ public abstract class WrkAbstract {
                     String.format("%8.2f", latency.pctWithinStdev) + "%"
             );
 
-            // Note: Divide throughput stats by 'threads' to get per-thread view
             System.out.println("    Req/Sec   " +
-                    String.format("%8.2f  ", throughput.mean / threads) +
-                    String.format("%8.2f  ", throughput.stdDev / threads) +
-                    String.format("%8.2f  ", throughput.max / threads) + "     " +
+                    String.format("%8.2f  ", throughput.mean) +
+                    String.format("%8.2f  ", throughput.stdDev) +
+                    String.format("%8.2f  ", throughput.max) + "     " +
                     String.format("%8.2f", throughput.pctWithinStdev) + "%"
             );
 
