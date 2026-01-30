@@ -79,7 +79,6 @@ import static com.github.yewyc.stats.Statistic.numberOfSignificantValueDigits;
  */
 public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
 
-    private static final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
     private static final Logger log = LoggerFactory.getLogger(AbstractLoadGenerator.class);
     protected static final long nan = Long.MIN_VALUE;
 
@@ -94,11 +93,30 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     private List<Histogram> histograms;
     private List<Integer> errors;
     private Duration duration;
+    private long counter;
 
     protected final EventLoop eventLoop;
-    private final Queue<Long> latencyQueue = new ArrayDeque<>();
+    private final Queue<Long[]> latencyQueue = new ArrayDeque<>();
+
+    private final boolean assertResponseOperation;
 
     public AbstractLoadGenerator(URL urlBase, Channel channel) {
+        this.assertResponseOperation = System.getProperty("assertResponseOperation", "false").equals("true");
+        if (this.assertResponseOperation) {
+            log.info("Assert response operation enabled");
+        }
+
+        /*
+         * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
+         * When you send multiple requests in parallel (pipelining), the second request will overwrite the
+         * start time of the first request.
+         *
+         * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
+         * you should use a simple Queue instead of a channel attribute.
+         *
+         */
+        HttpVersion httpVersion = HttpVersion.HTTP_1_1;
+
         this.channel = channel;
         this.req = new DefaultFullHttpRequest(httpVersion, HttpMethod.GET, urlBase.getPath(), Unpooled.EMPTY_BUFFER);
         this.req.headers().set(HttpHeaderNames.HOST, urlBase.getHost());
@@ -126,6 +144,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.errors = new ArrayList<>();
         this.running = true;
         this.end = System.nanoTime() + this.duration.toNanos();
+        this.counter = 0;
         scheduleNextRequest();
     }
 
@@ -145,25 +164,27 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
             if (!channel.isWritable()) {
                 log.warn("Channel not writable! Client is overloaded.");
             }
+            this.latencyQueue.add(new Long[]{counter, intendedTime});
 
-            /*
-             * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
-             * When you send multiple requests in parallel (pipelining), the second request will overwrite the
-             * start time of the first request.
-             *
-             * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
-             * you should use a simple Queue instead of a channel attribute.
-             *
-             */
-            assert httpVersion == HttpVersion.HTTP_1_1;
-            this.latencyQueue.add(intendedTime);
-            channel.writeAndFlush(req.retainedDuplicate());
+            FullHttpRequest localRequest = this.req.retainedDuplicate();
+            if (this.assertResponseOperation) {
+                localRequest.headers().set("X-Request-Id", this.counter);
+            }
+            channel.writeAndFlush(localRequest).addListener(future -> {
+                if (!future.isSuccess()) {
+                    log.error("Failed to send request {}", counter, future.cause());
+                }
+            });
+            counter++;
         }
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-        Long startTime = this.latencyQueue.poll();
+        Long[] data = this.latencyQueue.poll();
+        assert data != null;
+        long localId = data[0];
+        long startTime = data[1];
         // NPE cannot happen here
         this.recorder.recordValue(System.nanoTime() - startTime);
 
@@ -173,6 +194,12 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         if (log.isTraceEnabled()) {
             String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
             log.trace("Response [" + msg.status().code() + "]: " + responseBody);
+        }
+        if (this.assertResponseOperation) {
+            String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
+            if (!responseBody.equals(String.valueOf(localId))) {
+                throw new RuntimeException("Invalid id");
+            }
         }
 
         long now = System.currentTimeMillis();

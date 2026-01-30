@@ -20,7 +20,11 @@ public class LocalHttpServer {
     static class HelloHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            String response = "ok!";
+            String requestId = t.getRequestHeaders().getFirst("X-Request-Id");
+            if (requestId == null) {
+                requestId = "unknown";
+            }
+            String response = requestId;
             t.sendResponseHeaders(200, response.length());
             t.getResponseBody().write(response.getBytes());
             t.getResponseBody().close();
