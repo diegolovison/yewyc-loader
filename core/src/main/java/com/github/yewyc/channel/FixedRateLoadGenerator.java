@@ -37,7 +37,6 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
     }
 
     protected void reset() {
-        super.reset();
         this.i = 0;
         this.startIntendedTime = nan;
     }

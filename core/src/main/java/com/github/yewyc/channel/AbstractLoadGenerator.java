@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
  *
  * <h2>Control Flow</h2>
  * <pre>
- * 1. {@link #start(String)} - Public entry point, initializes the generator
+ * 1. {@link #start(String, Duration)} - Public entry point, initializes the generator
  *    ↓
  * 2. {@link #initializeAndScheduleNextRequest()} - Private orchestration method
  *    - Initializes timing on first call
@@ -70,7 +71,7 @@ import static com.github.yewyc.stats.Statistics.numberOfSignificantValueDigits;
  * </ul>
  *
  * <h2>Thread Safety</h2>
- * All operations are executed on the Netty event loop thread. The {@link #start(String)}
+ * All operations are executed on the Netty event loop thread. The {@link #start(String, Duration)}
  * method must be called from outside the event loop and will schedule work appropriately.
  *
  * @see LoadGenerator
@@ -86,8 +87,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     private final FullHttpRequest req;
 
     private Recorder recorder;
-    // change state outside the event loop and read the state within the event loop
-    private volatile boolean running = false;
+    private boolean running = false;
     private long start;
     private long end;
     private long lastRecordedTimeForGroupingHistograms = 0;
@@ -95,6 +95,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     private List<Histogram> histograms;
     private List<Integer> errors;
     private String name;
+    private Duration duration;
 
     protected final EventLoop eventLoop;
     private final Queue<Long> latencyQueue = new ArrayDeque<>();
@@ -108,53 +109,67 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.eventLoop = channel.eventLoop();
     }
 
-    public void start(String name) {
-        this.reset();
+    public void start(String name, Duration duration) {
         this.name = name;
-        this.running = true;
+        this.duration = duration;
         assert !eventLoop.inEventLoop();
         eventLoop.execute(this::initializeAndScheduleNextRequest);
     }
 
     private void initializeAndScheduleNextRequest() {
-        if (start == nan) {
-            this.start = System.currentTimeMillis();
-        }
-        scheduleNextRequestIfRunning();
+
+        assert eventLoop.inEventLoop();
+
+        this.reset();
+
+        this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
+        this.lastRecordedTimeForGroupingHistograms = 0;
+        this.errorCount = 0;
+        this.histograms = new ArrayList<>();
+        this.errors = new ArrayList<>();
+        this.running = true;
+        this.start = System.nanoTime();
+        this.end = this.start + this.duration.toNanos();
+        scheduleNextRequest();
     }
 
     protected final void scheduleNextRequestIfRunning() {
-        if (!running) return;
-        scheduleNextRequest();
+        if (running) {
+            scheduleNextRequest();
+        }
     }
 
     protected abstract void scheduleNextRequest();
 
     protected final void executeRequest(long intendedTime) {
-        if (!channel.isWritable()) {
-            log.warn("Channel not writable! Client is overloaded.");
-        }
 
-        /*
-         * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
-         * When you send multiple requests in parallel (pipelining), the second request will overwrite the
-         * start time of the first request.
-         *
-         * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
-         * you should use a simple Queue instead of a channel attribute.
-         *
-         */
-        assert httpVersion == HttpVersion.HTTP_1_1;
-        this.latencyQueue.add(intendedTime);
-        channel.writeAndFlush(req.retainedDuplicate());
+        if (intendedTime > end) {
+            this.running = false;
+        } else {
+            if (!channel.isWritable()) {
+                log.warn("Channel not writable! Client is overloaded.");
+            }
+
+            /*
+             * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
+             * When you send multiple requests in parallel (pipelining), the second request will overwrite the
+             * start time of the first request.
+             *
+             * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
+             * you should use a simple Queue instead of a channel attribute.
+             *
+             */
+            assert httpVersion == HttpVersion.HTTP_1_1;
+            this.latencyQueue.add(intendedTime);
+            channel.writeAndFlush(req.retainedDuplicate());
+        }
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-        if (!running) return;
         Long startTime = this.latencyQueue.poll();
-        long elapsedTimeNs = System.nanoTime() - startTime;
-        this.recorder.recordValue(elapsedTimeNs);
+        // NPE cannot happen here
+        this.recorder.recordValue(System.nanoTime() - startTime);
 
         if (msg.status().code() != 200) {
             this.errorCount += 1;
@@ -177,26 +192,15 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         }
     }
 
-    public void stop() {
-        this.running = false;
-        assert this.end == nan;
-        this.end = System.currentTimeMillis();
-    }
-
     protected void reset() {
-        this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
-        this.lastRecordedTimeForGroupingHistograms = 0;
-        this.errorCount = 0;
-        this.histograms = new ArrayList<>();
-        this.errors = new ArrayList<>();
 
-        this.start = nan;
-        this.end = nan;
-
-        this.latencyQueue.clear();
     }
 
     public Statistics collectStatistics() {
         return new Statistics(this.name, this.start, this.end, this.histograms, this.errors);
+    }
+
+    public boolean hasInflightRequests() {
+        return !this.latencyQueue.isEmpty();
     }
 }

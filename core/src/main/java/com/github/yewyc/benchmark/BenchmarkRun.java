@@ -138,7 +138,7 @@ public class BenchmarkRun {
     }
 
     /*
-     * block operation
+     * runPhase has block operations
      */
     private Statistics runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
         List<AbstractLoadGenerator> listeners = new ArrayList<>();
@@ -147,10 +147,22 @@ public class BenchmarkRun {
             listeners.add(handler);
         });
         log.info("Starting the phase: " + name);
-        listeners.forEach(h -> h.start(name));
-        // plusSeconds(1) because it will run until X times and we wish to capture the responses withing that time
-        Thread.sleep(duration.plusSeconds(1).toMillis());
-        listeners.forEach(AbstractLoadGenerator::stop);
+        listeners.forEach(h -> h.start(name, duration));
+        Thread.sleep(duration);
+        boolean requestsCompleted = false;
+        while (!requestsCompleted) {
+            int completedRequests = 0;
+            for (AbstractLoadGenerator handler : listeners) {
+                if (!handler.hasInflightRequests()) {
+                    completedRequests++;
+                }
+            }
+            if (completedRequests == listeners.size()) {
+                requestsCompleted = true;
+            } else {
+                Thread.sleep(Duration.ofSeconds(1).toMillis());
+            }
+        }
 
         List<Statistics> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
