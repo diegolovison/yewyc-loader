@@ -8,7 +8,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
-public class LocalHttpServer {
+/**
+ * You can have high throughput and low latency with `wrk2` because of the `TCP Delayed ACK timer`. `wrk2` hides the
+ * flaw because the aggressive traffic forces the TCP buffers to flush continuously.
+ * <p>
+ * By default, the vm option `sun.net.httpserver.nodelay` is false. You can experiment by setting it to true
+ */
+public class JavaHttpServer {
 
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
