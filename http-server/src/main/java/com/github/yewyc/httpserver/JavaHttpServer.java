@@ -14,6 +14,9 @@ import java.util.concurrent.Executors;
  * <p>
  * By default, the vm option `sun.net.httpserver.nodelay` is false. You can experiment by setting it to true
  */
+// TODO how many "bossGroup" the com.sun.net.httpserver.HttpServer has?
+// TODO is this code affected by "Garbage Collection (GC) Saturation"?
+// TODO add Connection: keep-alive header
 public class JavaHttpServer {
 
     public static void main(String[] args) throws IOException {
