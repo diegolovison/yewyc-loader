@@ -36,7 +36,7 @@ import static com.github.yewyc.stats.Statistic.numberOfSignificantValueDigits;
  *
  * <h2>Control Flow</h2>
  * <pre>
- * 1. {@link #start(String, Duration)} - Public entry point, initializes the generator
+ * 1. {@link #start(Duration)} - Public entry point, initializes the generator
  *    ↓
  * 2. {@link #initializeAndScheduleNextRequest()} - Private orchestration method
  *    - Initializes timing on first call
@@ -149,6 +149,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     }
 
     protected final void scheduleNextRequestIfRunning() {
+        assert this.eventLoop.inEventLoop();
         if (running) {
             scheduleNextRequest();
         }
@@ -156,16 +157,16 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     protected abstract void scheduleNextRequest();
 
-    protected final void executeRequest(long intendedTime) {
-
+    protected final boolean executeRequest(long intendedTime) {
+        assert this.eventLoop.inEventLoop();
+        boolean ok = true;
         if (intendedTime > end) {
             this.running = false;
+            ok = false;
+        } else if (!channel.isWritable()) {
+            ok = false;
         } else {
-            if (!channel.isWritable()) {
-                log.warn("Channel not writable! Client is overloaded.");
-            }
             this.latencyQueue.add(new Long[]{counter, intendedTime});
-
             FullHttpRequest localRequest = this.req.retainedDuplicate();
             if (this.assertResponseOperation) {
                 localRequest.headers().set("X-Request-Id", this.counter);
@@ -177,6 +178,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
             });
             counter++;
         }
+        return ok;
     }
 
     @Override

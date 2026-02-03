@@ -29,8 +29,10 @@ public class FixedRateLoadGenerator extends AbstractLoadGenerator {
         if (delayNs > 0) {
             eventLoop.schedule(this::scheduleNextRequestIfRunning, delayNs, TimeUnit.NANOSECONDS);
         } else {
-            executeRequest(intendedTime);
-            i++;
+            boolean ok = executeRequest(intendedTime);
+            if (ok) {
+                i++;
+            }
             // TODO eventLoop.execute adds a small amount of overhead compared to a direct loop but prevent stack overflows from deep recursion
             eventLoop.execute(this::scheduleNextRequestIfRunning);
         }
