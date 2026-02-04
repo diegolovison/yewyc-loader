@@ -1,5 +1,6 @@
 package com.github.yewyc.channel;
 
+import com.github.yewyc.stats.SequentialTimeSeriesRecorder;
 import com.github.yewyc.stats.Statistic;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -12,20 +13,13 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
-import org.HdrHistogram.Histogram;
-import org.HdrHistogram.Recorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
-
-import static com.github.yewyc.stats.Statistic.highestTrackableValue;
-import static com.github.yewyc.stats.Statistic.numberOfSignificantValueDigits;
 
 /**
  * Abstract base class for HTTP load generators implementing the Template Method pattern.
@@ -85,13 +79,10 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     private final Channel channel;
     private final FullHttpRequest req;
 
-    private Recorder recorder;
+    private SequentialTimeSeriesRecorder localRecorder;
     private boolean running = false;
+    private long start;
     private long end;
-    private long lastRecordedTimeForGroupingHistograms = 0;
-    private int errorCount = 0;
-    private List<Histogram> histograms;
-    private List<Integer> errors;
     private Duration duration;
     private long counter;
 
@@ -126,25 +117,20 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     }
 
     public void start(Duration duration) {
-        this.duration = duration;
         assert !eventLoop.inEventLoop();
+        this.duration = duration;
+        this.localRecorder = new SequentialTimeSeriesRecorder(this.duration);
         eventLoop.execute(this::initializeAndScheduleNextRequest);
     }
 
     private void initializeAndScheduleNextRequest() {
-
         assert eventLoop.inEventLoop();
-
         this.reset();
-
-        this.recorder = new Recorder(highestTrackableValue, numberOfSignificantValueDigits);
-        this.lastRecordedTimeForGroupingHistograms = 0;
-        this.errorCount = 0;
-        this.histograms = new ArrayList<>();
-        this.errors = new ArrayList<>();
         this.running = true;
-        this.end = System.nanoTime() + this.duration.toNanos();
         this.counter = 0;
+        this.start = System.nanoTime();
+        this.localRecorder.start(this.start);
+        this.end = this.start + this.duration.toNanos();
         scheduleNextRequest();
     }
 
@@ -187,12 +173,11 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         assert data != null;
         long localId = data[0];
         long startTime = data[1];
-        // NPE cannot happen here
-        this.recorder.recordValue(System.nanoTime() - startTime);
-
+        boolean success = true;
         if (msg.status().code() != 200) {
-            this.errorCount += 1;
+            success = false;
         }
+        this.localRecorder.recordValue(startTime, System.nanoTime() - startTime, success);
         if (log.isTraceEnabled()) {
             String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
             log.trace("Response [" + msg.status().code() + "]: " + responseBody);
@@ -203,18 +188,6 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
                 throw new RuntimeException("Invalid id");
             }
         }
-
-        long now = System.currentTimeMillis();
-        if (lastRecordedTimeForGroupingHistograms == 0) {
-            lastRecordedTimeForGroupingHistograms = now;
-        }
-        long elapsedTimeForGroupingHistagrams = now - this.lastRecordedTimeForGroupingHistograms;
-        if (elapsedTimeForGroupingHistagrams >= 1000) {
-            this.histograms.add(recorder.getIntervalHistogram());
-            this.errors.add(errorCount);
-            this.lastRecordedTimeForGroupingHistograms = now;
-            this.errorCount = 0;
-        }
     }
 
     protected void reset() {
@@ -222,7 +195,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     }
 
     public Statistic collectStatistics() {
-        return new Statistic(this.histograms, this.errors);
+        return new Statistic(this.localRecorder.getHistograms(), this.localRecorder.getErrors());
     }
 
     public boolean hasInflightRequests() {

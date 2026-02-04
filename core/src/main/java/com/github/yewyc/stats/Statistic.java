@@ -13,6 +13,7 @@ public class Statistic {
     public static final long highestTrackableValue = TimeUnit.MINUTES.toNanos(1);
     public static final int numberOfSignificantValueDigits = 3;
     public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
+    public static final long oneSecInNanos = TimeUnit.SECONDS.toNanos(1);
 
     private final List<Histogram> histograms;
     private final List<Integer> errors;
