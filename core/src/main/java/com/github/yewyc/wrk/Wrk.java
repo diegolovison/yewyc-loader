@@ -1,4 +1,4 @@
-package com.github.yewyc;
+package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
 

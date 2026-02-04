@@ -1,9 +1,8 @@
-package com.github.yewyc;
+package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.stats.RateStatistics;
-import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticPhase;
 import com.github.yewyc.stats.StatisticTick;
 

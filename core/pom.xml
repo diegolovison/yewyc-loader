@@ -80,7 +80,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <archive>
                 <manifest>
-                  <mainClass>com.github.yewyc.Wrk2</mainClass>
+                  <mainClass>com.github.yewyc.wrk.Wrk2</mainClass>
                 </manifest>
               </archive>
               <descriptorRefs>
@@ -101,7 +101,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <archive>
                 <manifest>
-                  <mainClass>com.github.yewyc.Wrk</mainClass>
+                  <mainClass>com.github.yewyc.wrk.Wrk</mainClass>
                 </manifest>
               </archive>
               <descriptorRefs>
