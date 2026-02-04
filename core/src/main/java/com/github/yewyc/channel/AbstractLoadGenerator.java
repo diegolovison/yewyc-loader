@@ -30,7 +30,7 @@ import java.util.Queue;
  *
  * <h2>Control Flow</h2>
  * <pre>
- * 1. {@link #start(Duration)} - Public entry point, initializes the generator
+ * 1. {@link #prepare(Duration)} (Duration)} - Public entry point, initializes the generator
  *    ↓
  * 2. {@link #initializeAndScheduleNextRequest()} - Private orchestration method
  *    - Initializes timing on first call
@@ -65,7 +65,7 @@ import java.util.Queue;
  * </ul>
  *
  * <h2>Thread Safety</h2>
- * All operations are executed on the Netty event loop thread. The {@link #start(Duration)}
+ * All operations are executed on the Netty event loop thread. The {@link #prepare(Duration)} (Duration)}
  * method must be called from outside the event loop and will schedule work appropriately.
  *
  * @see LoadGenerator
@@ -116,10 +116,21 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         this.eventLoop = channel.eventLoop();
     }
 
-    public void start(Duration duration) {
+    /**
+     * It can contains slow operation
+     * @param duration
+     */
+    public AbstractLoadGenerator prepare(Duration duration) {
         assert !eventLoop.inEventLoop();
         this.duration = duration;
         this.localRecorder = new SequentialTimeSeriesRecorder(this.duration);
+        return this;
+    }
+
+    /**
+     * delegate. in this case, the SimpleChannelInboundHandler will have small diff when compared with others
+     */
+    public void start() {
         eventLoop.execute(this::initializeAndScheduleNextRequest);
     }
 

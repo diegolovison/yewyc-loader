@@ -17,7 +17,6 @@ public class SequentialTimeSeriesRecorder {
         final Histogram histogram;
 
         public Bucket() {
-            // Pre-allocate to avoid GC in the event loop
             this.histogram = new Histogram(highestTrackableValue, numberOfSignificantValueDigits);
             this.histogram.setAutoResize(true);
         }
@@ -66,10 +65,11 @@ public class SequentialTimeSeriesRecorder {
             // Calculate the next barrier.
             // We use (index + 1) to find the start of the NEXT second.
             this.nextSecondBarrier = startNanoTime + ((index + 1) * oneSecInNanos);
-        }
-        // can have 1 nanosecond diff. the bucked is from when it started. it is fine add as the last one
-        if (index >= buffer.length) {
-            index = buffer.length - 1;
+
+            // can have +1 nanosecond diff. the bucked is from when it started. it is fine add as the last one
+            if (index >= buffer.length) {
+                index = buffer.length - 1;
+            }
         }
         Bucket bucket = buffer[index];
         if (!success) {
@@ -80,8 +80,7 @@ public class SequentialTimeSeriesRecorder {
 
     public List<Histogram> getHistograms() {
         List<Histogram> histograms = new ArrayList<>();
-        for (int i = 0; i < buffer.length; i++) {
-            Bucket b = buffer[i];
+        for (Bucket b : buffer) {
             histograms.add(b.histogram);
         }
         return histograms;
@@ -89,8 +88,7 @@ public class SequentialTimeSeriesRecorder {
 
     public List<Integer> getErrors() {
         List<Integer> errors = new ArrayList<>();
-        for (int i = 0; i < buffer.length; i++) {
-            Bucket b = buffer[i];
+        for (Bucket b : buffer) {
             errors.add(b.errors);
         }
         return errors;

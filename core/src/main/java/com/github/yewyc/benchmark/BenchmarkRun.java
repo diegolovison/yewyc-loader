@@ -151,7 +151,8 @@ public class BenchmarkRun {
         });
         log.info("Starting the phase: " + name);
         long start = System.currentTimeMillis();
-        listeners.forEach(h -> h.start(duration));
+        listeners.forEach(h -> h.prepare(duration));
+        listeners.forEach(AbstractLoadGenerator::start);
         Thread.sleep(duration);
         boolean requestsCompleted = false;
         while (!requestsCompleted) {
