@@ -212,4 +212,8 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     public boolean hasInflightRequests() {
         return !this.latencyQueue.isEmpty();
     }
+
+    public long getEnd() {
+        return this.end;
+    }
 }

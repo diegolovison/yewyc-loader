@@ -150,7 +150,8 @@ public class BenchmarkRun {
             listeners.add(handler);
         });
         log.info("Starting the phase: " + name);
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
+        long end = -1;
         listeners.forEach(h -> h.prepare(duration));
         listeners.forEach(AbstractLoadGenerator::start);
         Thread.sleep(duration);
@@ -160,6 +161,7 @@ public class BenchmarkRun {
             for (AbstractLoadGenerator handler : listeners) {
                 if (!handler.hasInflightRequests()) {
                     completedRequests++;
+                    end = Math.max(end, handler.getEnd());
                 }
             }
             if (completedRequests == listeners.size()) {
@@ -168,13 +170,12 @@ public class BenchmarkRun {
                 Thread.sleep(1);
             }
         }
-        long end = System.currentTimeMillis();
 
         List<Statistic> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
             stats.add(listener.collectStatistics());
         }
         log.info("Finished the phase: " + name);
-        return new StatisticPhase(name, Duration.ofMillis(end - start), StatisticConverter.convert(stats));
+        return new StatisticPhase(name, Duration.ofNanos(end - start), StatisticConverter.convert(stats));
     }
 }
