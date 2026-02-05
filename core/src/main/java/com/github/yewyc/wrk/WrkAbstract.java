@@ -2,6 +2,7 @@ package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
+import com.github.yewyc.channel.LoadStrategy;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.StatisticPhase;
 import com.github.yewyc.stats.StatisticTick;
@@ -41,7 +42,7 @@ public abstract class WrkAbstract {
         int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : 0;
         String url = args[args.length - 1];
 
-        BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, url, Duration.ofSeconds(6), timeout);
+        BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, url, Duration.ofSeconds(6), timeout, getMode());
 
         try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {
             validate(benchmark);
@@ -51,6 +52,8 @@ public abstract class WrkAbstract {
                     .plot();
         }
     }
+
+    protected abstract LoadStrategy getMode();
 
     protected abstract void validate(Benchmark benchmark);
 

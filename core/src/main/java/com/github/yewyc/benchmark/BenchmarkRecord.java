@@ -1,5 +1,7 @@
 package com.github.yewyc.benchmark;
 
+import com.github.yewyc.channel.LoadStrategy;
+
 import java.time.Duration;
 
 /**
@@ -7,7 +9,7 @@ import java.time.Duration;
  * 
  * @param threads Number of threads to use for the benchmark (must be > 0)
  * @param duration Duration of the benchmark test phase
- * @param rate Operations per second (0 for closed model, >0 for open model)
+ * @param rate Operations per second. Ignored if it is a closed model.
  * @param connections Number of concurrent connections to maintain
  * @param urlBase Base URL to benchmark against
  * @param warmUpDuration Duration of the warm-up phase (can be null)
@@ -20,7 +22,8 @@ public record BenchmarkRecord(
     int connections,
     String urlBase,
     Duration warmUpDuration,
-    Duration timeout
+    Duration timeout,
+    LoadStrategy mode
 ) {
     
     /**
@@ -45,13 +48,9 @@ public record BenchmarkRecord(
         if (timeout != null && timeout.isNegative()) {
             throw new IllegalArgumentException("timeout must not be negative");
         }
-    }
-    
-    /**
-     * Returns true if this benchmark uses a closed model (no rate limiting)
-     */
-    public boolean isClosedModel() {
-        return rate == 0;
+        if (mode == null) {
+            throw new IllegalArgumentException("mode must not be null or blank");
+        }
     }
     
     /**
@@ -72,9 +71,6 @@ public record BenchmarkRecord(
      * Calculates the expected maximum number of requests during warm-up phase
      */
     public long expectedWarmUpRequests() {
-        if (!hasWarmUp() || isClosedModel()) {
-            return 0;
-        }
         return (long) rate * warmUpDuration.getSeconds();
     }
     
@@ -82,9 +78,6 @@ public record BenchmarkRecord(
      * Calculates the expected maximum number of requests during test phase
      */
     public long expectedTestRequests() {
-        if (isClosedModel()) {
-            return 0; // Unbounded in closed model
-        }
         return (long) rate * duration.getSeconds();
     }
     
@@ -92,9 +85,6 @@ public record BenchmarkRecord(
      * Calculates requests per second per connection
      */
     public double requestsPerSecondPerConnection() {
-        if (isClosedModel()) {
-            return 0.0;
-        }
         return (double) rate / connections;
     }
 }

@@ -1,8 +1,10 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.channel.AbstractLoadGenerator;
+import com.github.yewyc.channel.LoadStrategy;
 import com.github.yewyc.channel.OpenLoadGenerator;
 import com.github.yewyc.channel.ClosedLoadGenerator;
+import com.github.yewyc.channel.ScheduledClosedLoadGenerator;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
@@ -47,7 +49,7 @@ public class BenchmarkRun {
         List<StatisticPhase> statistics = new ArrayList<>();
 
         long intervalNs;
-        if (record.isClosedModel()) {
+        if (record.mode().equals(LoadStrategy.wrk)) {
             intervalNs = 0;
             log.info("Benchmark initialization with a closed model");
         } else {
@@ -102,10 +104,14 @@ public class BenchmarkRun {
                                 }
                             });
 
-                            if (record.isClosedModel()) {
+                            if (record.mode().equals(LoadStrategy.wrk)) {
                                 p.addLast("run-handler", new ClosedLoadGenerator(urlBase, ch.read()));
-                            } else {
+                            } else if (record.mode().equals(LoadStrategy.wrk2)) {
+                                p.addLast("run-handler", new ScheduledClosedLoadGenerator(urlBase, ch.read(), intervalNs));
+                            } else if (record.mode().equals(LoadStrategy.wrk3)) {
                                 p.addLast("run-handler", new OpenLoadGenerator(urlBase, ch.read(), intervalNs));
+                            } else {
+                                throw new IllegalStateException();
                             }
                         }
                     });
