@@ -17,7 +17,8 @@ public class ClosedLoadGenerator extends AbstractLoadGenerator {
 
     @Override
     protected void scheduleNextRequest() {
-        executeRequest(System.nanoTime());
+        long now = System.nanoTime();
+        executeRequest(now, now);
     }
 
     @Override

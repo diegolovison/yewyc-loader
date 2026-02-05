@@ -104,12 +104,12 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     protected abstract void scheduleNextRequest();
 
-    protected final void executeRequest(long intendedTime) {
+    protected final void executeRequest(long whenFired, long intendedTime) {
         assert this.eventLoop.inEventLoop();
-        if (intendedTime > end) {
+        if (whenFired > end) {
             this.running = false;
         } else if (channel.isWritable()) {
-            this.latencyQueue.add(new Long[]{this.id, intendedTime});
+            this.latencyQueue.add(new Long[]{this.id, whenFired, intendedTime});
             FullHttpRequest localRequest = this.req.retainedDuplicate();
             if (this.assertResponseOperation) {
                 localRequest.headers().set("X-Request-Id", this.id);
@@ -127,20 +127,21 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
         Long[] data = this.latencyQueue.poll();
         assert data != null;
-        long localId = data[0];
-        long startTime = data[1];
+        long requestId = data[0];
+        long requestStartTime = data[1];
+        long requestIntendedTime = data[1];
         boolean success = true;
         if (msg.status().code() != 200) {
             success = false;
         }
-        this.localRecorder.recordValue(startTime, System.nanoTime() - startTime, success);
+        this.localRecorder.recordValue(requestStartTime, System.nanoTime() - requestIntendedTime, success);
         if (log.isTraceEnabled()) {
             String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
             log.trace("Response [" + msg.status().code() + "]: " + responseBody);
         }
         if (this.assertResponseOperation) {
             String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
-            if (!responseBody.equals(String.valueOf(localId))) {
+            if (!responseBody.equals(String.valueOf(requestId))) {
                 throw new RuntimeException("Invalid id");
             }
         }

@@ -1,4 +1,4 @@
-### Closed-Loop (wrk) - `ClosedLoadGenerator.java`
+### wrk - `ClosedLoadGenerator.java`
 
 **Request Flow:**
 ```
@@ -13,7 +13,7 @@ Request 1 ──► Response 1 ──► Request 2 ──► Response 2 ──�
 - Maintains constant number of in-flight requests
 - Suffers from coordinated omission in latency measurements
 
-### Scheduled Closed-Loop (wrk2) - `ScheduledClosedLoadGenerator.java`
+### wrk2 - `SemiOpenLoadGenerator.java`
 
 **Request Flow:**
 ```
@@ -29,7 +29,7 @@ Actual:   R0 ──► R1 ──► R2 ──► R3 ──► R4
 - Avoids coordinated omission by recording intended vs actual times
 - May fall behind schedule if server is slow
 
-### Open-Loop (wrk3)
+### wrk3 - `OpenLoadGenerator.java`
 
 **Request Flow:**
 ```

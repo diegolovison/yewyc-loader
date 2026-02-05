@@ -5,15 +5,16 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpResponse;
 
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Closed Model - wrk2 - Response-driven with intended time
  */
-public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
+public class SemiOpenLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
 
-    public ScheduledClosedLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
+    public SemiOpenLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
         this.intervalNs = intervalNs;
     }
@@ -21,7 +22,13 @@ public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
     @Override
     protected void scheduleNextRequest() {
         long intendedTime = start + (this.id * this.intervalNs);
-        executeRequest(intendedTime);
+        long now = System.nanoTime();
+        long delayNs = intendedTime - now;
+        if (delayNs > 0) {
+            eventLoop.schedule(this::scheduleNextRequestIfRunning, delayNs, TimeUnit.NANOSECONDS);
+        } else {
+            executeRequest(System.nanoTime(), intendedTime);
+        }
     }
 
     @Override
