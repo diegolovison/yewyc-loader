@@ -12,7 +12,6 @@ public class OpenLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
     private int i = 0;
-    private long startIntendedTime;
 
     public OpenLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
@@ -20,10 +19,7 @@ public class OpenLoadGenerator extends AbstractLoadGenerator {
     }
 
     protected void scheduleNextRequest() {
-        if (this.startIntendedTime == nan) {
-            this.startIntendedTime = System.nanoTime();
-        }
-        long intendedTime = startIntendedTime + (i * this.intervalNs);
+        long intendedTime = start + (i * this.intervalNs);
         long now = System.nanoTime();
         long delayNs = intendedTime - now;
         if (delayNs > 0) {
@@ -40,7 +36,6 @@ public class OpenLoadGenerator extends AbstractLoadGenerator {
 
     protected void reset() {
         this.i = 0;
-        this.startIntendedTime = nan;
     }
 
 }

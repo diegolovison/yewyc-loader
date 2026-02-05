@@ -31,7 +31,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     private SequentialTimeSeriesRecorder localRecorder;
     private boolean running = false;
-    private long start;
+    protected long start;
     private long end;
     private Duration duration;
     private long counter;
@@ -81,6 +81,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
      * delegate. in this case, the SimpleChannelInboundHandler will have small diff when compared with others
      */
     public void start() {
+        assert !eventLoop.inEventLoop();
         eventLoop.execute(this::initializeAndScheduleNextRequest);
     }
 

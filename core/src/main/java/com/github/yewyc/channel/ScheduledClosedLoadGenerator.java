@@ -13,7 +13,6 @@ public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
     private int i = 0;
-    private long startIntendedTime;
 
     public ScheduledClosedLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
@@ -22,10 +21,7 @@ public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
 
     @Override
     protected void scheduleNextRequest() {
-        if (this.startIntendedTime == nan) {
-            this.startIntendedTime = System.nanoTime();
-        }
-        long intendedTime = startIntendedTime + (i * this.intervalNs);
+        long intendedTime = start + (i * this.intervalNs);
         boolean ok = executeRequest(intendedTime);
         if (ok) {
             i++;
@@ -40,6 +36,6 @@ public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
 
     protected void reset() {
         this.i = 0;
-        this.startIntendedTime = nan;
+        this.start = nan;
     }
 }
