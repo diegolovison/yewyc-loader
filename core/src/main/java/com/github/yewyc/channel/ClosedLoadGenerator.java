@@ -7,11 +7,11 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import java.net.URL;
 
 /**
- * Closed model
+ * Closed Model - wrk - waits for response before next request
  */
-public class LoadGenerator extends AbstractLoadGenerator {
+public class ClosedLoadGenerator extends AbstractLoadGenerator {
 
-    public LoadGenerator(URL urlBase, Channel channel) {
+    public ClosedLoadGenerator(URL urlBase, Channel channel) {
         super(urlBase, channel);
     }
 

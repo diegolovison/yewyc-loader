@@ -6,15 +6,15 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Open Model
+ * Open Model - wrk3 - Fixed rate, fire requests at that rate
  */
-public class FixedRateLoadGenerator extends AbstractLoadGenerator {
+public class OpenLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
     private int i = 0;
     private long startIntendedTime;
 
-    public FixedRateLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
+    public OpenLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
         this.intervalNs = intervalNs;
     }

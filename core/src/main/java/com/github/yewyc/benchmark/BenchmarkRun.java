@@ -1,12 +1,11 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.channel.AbstractLoadGenerator;
-import com.github.yewyc.channel.FixedRateLoadGenerator;
-import com.github.yewyc.channel.LoadGenerator;
+import com.github.yewyc.channel.OpenLoadGenerator;
+import com.github.yewyc.channel.ClosedLoadGenerator;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
-import com.github.yewyc.stats.StatisticTick;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -104,9 +103,9 @@ public class BenchmarkRun {
                             });
 
                             if (record.isClosedModel()) {
-                                p.addLast("run-handler", new LoadGenerator(urlBase, ch.read()));
+                                p.addLast("run-handler", new ClosedLoadGenerator(urlBase, ch.read()));
                             } else {
-                                p.addLast("run-handler", new FixedRateLoadGenerator(urlBase, ch.read(), intervalNs));
+                                p.addLast("run-handler", new OpenLoadGenerator(urlBase, ch.read(), intervalNs));
                             }
                         }
                     });

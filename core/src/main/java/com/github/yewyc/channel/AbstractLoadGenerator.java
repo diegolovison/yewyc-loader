@@ -58,9 +58,9 @@ import java.util.Queue;
  *
  * <h2>Load Models</h2>
  * <ul>
- *   <li><b>Closed Model</b> ({@link LoadGenerator}): Sends next request immediately after
+ *   <li><b>Closed Model</b> ({@link ClosedLoadGenerator}): Sends next request immediately after
  *       receiving response. Maintains constant number of concurrent requests.</li>
- *   <li><b>Open Model</b> ({@link FixedRateLoadGenerator}): Sends requests at fixed rate
+ *   <li><b>Open Model</b> ({@link OpenLoadGenerator}): Sends requests at fixed rate
  *       regardless of responses. Simulates independent user arrivals.</li>
  * </ul>
  *
@@ -68,8 +68,8 @@ import java.util.Queue;
  * All operations are executed on the Netty event loop thread. The {@link #prepare(Duration)} (Duration)}
  * method must be called from outside the event loop and will schedule work appropriately.
  *
- * @see LoadGenerator
- * @see FixedRateLoadGenerator
+ * @see ClosedLoadGenerator
+ * @see OpenLoadGenerator
  */
 public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
 
