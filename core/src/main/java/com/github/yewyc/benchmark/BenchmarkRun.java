@@ -1,10 +1,10 @@
 package com.github.yewyc.benchmark;
 
-import com.github.yewyc.channel.AbstractLoadGenerator;
-import com.github.yewyc.channel.LoadStrategy;
-import com.github.yewyc.channel.OpenLoadGenerator;
-import com.github.yewyc.channel.ClosedLoadGenerator;
-import com.github.yewyc.channel.SemiOpenLoadGenerator;
+import com.github.yewyc.loadgenerator.AbstractLoadGenerator;
+import com.github.yewyc.loadgenerator.LoadStrategy;
+import com.github.yewyc.loadgenerator.OpenLoadGenerator;
+import com.github.yewyc.loadgenerator.ClosedLoadGenerator;
+import com.github.yewyc.loadgenerator.SemiOpenLoadGenerator;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;

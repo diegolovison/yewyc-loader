@@ -48,10 +48,10 @@ Actual:   R0    R1    R2    R3    R4
 
 ## Coordinated Omission Problem - How strategies handle it:
 
-| Strategy | Coordinated Omission | Solution |
-|----------|---------------------|----------|
-| **Closed-Loop** | ❌ Yes | None - accepts the limitation |
-| **Scheduled Closed** | ✅ No | Records intended send time |
-| **Open-Loop** | ✅ No | Sends regardless of responses |
+| Strategy | Coordinated Omission |
+|----------|---------------------|
+| **Closed-Loop** | ❌ Yes |
+| **Scheduled Closed** | ✅ No |
+| **Open-Loop** | ✅ No |
 
 // Document created by Bob with some personal changes

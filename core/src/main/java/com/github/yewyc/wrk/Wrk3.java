@@ -1,7 +1,7 @@
 package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
-import com.github.yewyc.channel.LoadStrategy;
+import com.github.yewyc.loadgenerator.LoadStrategy;
 
 // -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
 public class Wrk3 extends WrkAbstract {

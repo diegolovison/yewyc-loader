@@ -2,7 +2,7 @@ package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
-import com.github.yewyc.channel.LoadStrategy;
+import com.github.yewyc.loadgenerator.LoadStrategy;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.StatisticPhase;
 import com.github.yewyc.stats.StatisticTick;

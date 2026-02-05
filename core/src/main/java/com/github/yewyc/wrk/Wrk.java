@@ -1,7 +1,7 @@
 package com.github.yewyc.wrk;
 
 import com.github.yewyc.benchmark.Benchmark;
-import com.github.yewyc.channel.LoadStrategy;
+import com.github.yewyc.loadgenerator.LoadStrategy;
 
 public class Wrk extends WrkAbstract {
 

@@ -1,4 +1,4 @@
-package com.github.yewyc.channel;
+package com.github.yewyc.loadgenerator;
 
 import com.github.yewyc.stats.SequentialTimeSeriesRecorder;
 import com.github.yewyc.stats.Statistic;

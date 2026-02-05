@@ -1,4 +1,4 @@
-package com.github.yewyc.channel;
+package com.github.yewyc.loadgenerator;
 
 import io.netty.channel.Channel;
 

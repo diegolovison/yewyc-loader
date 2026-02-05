@@ -1,6 +1,6 @@
 package com.github.yewyc.benchmark;
 
-import com.github.yewyc.channel.LoadStrategy;
+import com.github.yewyc.loadgenerator.LoadStrategy;
 
 import java.time.Duration;
 
