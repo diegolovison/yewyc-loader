@@ -21,56 +21,6 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-/**
- * Abstract base class for HTTP load generators implementing the Template Method pattern.
- *
- * <h2>Architecture Overview</h2>
- * This class provides the framework for generating HTTP load against a target server,
- * with subclasses defining the specific scheduling strategy (closed model vs open model).
- *
- * <h2>Control Flow</h2>
- * <pre>
- * 1. {@link #prepare(Duration)} (Duration)} - Public entry point, initializes the generator
- *    ↓
- * 2. {@link #initializeAndScheduleNextRequest()} - Private orchestration method
- *    - Initializes timing on first call
- *    - Delegates to scheduling strategy
- *    ↓
- * 3. {@link #scheduleNextRequest()} - Abstract template method (subclass implements)
- *    - Defines WHEN to send the next request
- *    - Closed model: immediately after response
- *    - Open model: at fixed rate intervals
- *    ↓
- * 4. {@link #executeRequest(long)} - Final helper method
- *    - Performs the actual HTTP request
- *    - Records timing for latency measurement
- *    ↓
- * 5. {@link #channelRead0(ChannelHandlerContext, FullHttpResponse)} - Response handler
- *    - Records latency and statistics
- *    - May trigger next request (closed model)
- * </pre>
- *
- * <h2>Extension Points</h2>
- * Subclasses must implement:
- * <ul>
- *   <li>{@link #scheduleNextRequest()} - Define the scheduling strategy</li>
- * </ul>
- *
- * <h2>Load Models</h2>
- * <ul>
- *   <li><b>Closed Model</b> ({@link ClosedLoadGenerator}): Sends next request immediately after
- *       receiving response. Maintains constant number of concurrent requests.</li>
- *   <li><b>Open Model</b> ({@link OpenLoadGenerator}): Sends requests at fixed rate
- *       regardless of responses. Simulates independent user arrivals.</li>
- * </ul>
- *
- * <h2>Thread Safety</h2>
- * All operations are executed on the Netty event loop thread. The {@link #prepare(Duration)} (Duration)}
- * method must be called from outside the event loop and will schedule work appropriately.
- *
- * @see ClosedLoadGenerator
- * @see OpenLoadGenerator
- */
 public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractLoadGenerator.class);
