@@ -12,7 +12,6 @@ import java.net.URL;
 public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
-    private int i = 0;
 
     public ScheduledClosedLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
         super(urlBase, channel);
@@ -21,21 +20,13 @@ public class ScheduledClosedLoadGenerator extends AbstractLoadGenerator {
 
     @Override
     protected void scheduleNextRequest() {
-        long intendedTime = start + (i * this.intervalNs);
-        boolean ok = executeRequest(intendedTime);
-        if (ok) {
-            i++;
-        }
+        long intendedTime = start + (this.id * this.intervalNs);
+        executeRequest(intendedTime);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
         super.channelRead0(ctx, msg);
         eventLoop.execute(this::scheduleNextRequestIfRunning);
-    }
-
-    protected void reset() {
-        this.i = 0;
-        this.start = nan;
     }
 }

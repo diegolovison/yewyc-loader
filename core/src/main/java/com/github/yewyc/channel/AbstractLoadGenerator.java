@@ -34,7 +34,7 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     protected long start;
     private long end;
     private Duration duration;
-    private long counter;
+    protected long id;
 
     protected final EventLoop eventLoop;
     private final Queue<Long[]> latencyQueue = new ArrayDeque<>();
@@ -87,9 +87,8 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     private void initializeAndScheduleNextRequest() {
         assert eventLoop.inEventLoop();
-        this.reset();
         this.running = true;
-        this.counter = 0;
+        this.id = 0;
         this.start = System.nanoTime();
         this.localRecorder.start(this.start);
         this.end = this.start + this.duration.toNanos();
@@ -105,28 +104,23 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
 
     protected abstract void scheduleNextRequest();
 
-    protected final boolean executeRequest(long intendedTime) {
+    protected final void executeRequest(long intendedTime) {
         assert this.eventLoop.inEventLoop();
-        boolean ok = true;
         if (intendedTime > end) {
             this.running = false;
-            ok = false;
-        } else if (!channel.isWritable()) {
-            ok = false;
-        } else {
-            this.latencyQueue.add(new Long[]{counter, intendedTime});
+        } else if (channel.isWritable()) {
+            this.latencyQueue.add(new Long[]{this.id, intendedTime});
             FullHttpRequest localRequest = this.req.retainedDuplicate();
             if (this.assertResponseOperation) {
-                localRequest.headers().set("X-Request-Id", this.counter);
+                localRequest.headers().set("X-Request-Id", this.id);
             }
             channel.writeAndFlush(localRequest).addListener(future -> {
                 if (!future.isSuccess()) {
-                    log.error("Failed to send request {}", counter, future.cause());
+                    log.error("Failed to send request {}", this.id, future.cause());
                 }
             });
-            counter++;
+            this.id++;
         }
-        return ok;
     }
 
     @Override
@@ -150,10 +144,6 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
                 throw new RuntimeException("Invalid id");
             }
         }
-    }
-
-    protected void reset() {
-
     }
 
     public Statistic collectStatistics() {
