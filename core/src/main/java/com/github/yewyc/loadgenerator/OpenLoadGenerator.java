@@ -1,8 +1,8 @@
 package com.github.yewyc.loadgenerator;
 
+import com.github.yewyc.scenario.Scenario;
 import io.netty.channel.Channel;
 
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -12,8 +12,8 @@ public class OpenLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
 
-    public OpenLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
-        super(urlBase, channel);
+    public OpenLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
+        super(channel, scenario);
         this.intervalNs = intervalNs;
     }
 
@@ -28,5 +28,10 @@ public class OpenLoadGenerator extends AbstractLoadGenerator {
             // TODO eventLoop.execute adds a small amount of overhead compared to a direct loop but prevent stack overflows from deep recursion
             eventLoop.execute(this::scheduleNextRequestIfRunning);
         }
+    }
+
+    @Override
+    protected void onScenarioComplete() {
+
     }
 }

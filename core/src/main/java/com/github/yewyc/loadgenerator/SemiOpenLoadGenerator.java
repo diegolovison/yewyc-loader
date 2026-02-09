@@ -1,10 +1,8 @@
 package com.github.yewyc.loadgenerator;
 
+import com.github.yewyc.scenario.Scenario;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.FullHttpResponse;
 
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -14,8 +12,8 @@ public class SemiOpenLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
 
-    public SemiOpenLoadGenerator(URL urlBase, Channel channel, long intervalNs) {
-        super(urlBase, channel);
+    public SemiOpenLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
+        super(channel, scenario);
         this.intervalNs = intervalNs;
     }
 
@@ -32,8 +30,7 @@ public class SemiOpenLoadGenerator extends AbstractLoadGenerator {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-        super.channelRead0(ctx, msg);
+    protected void onScenarioComplete() {
         eventLoop.execute(this::scheduleNextRequestIfRunning);
     }
 }

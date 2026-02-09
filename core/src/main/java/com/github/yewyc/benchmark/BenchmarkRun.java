@@ -1,55 +1,54 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.loadgenerator.AbstractLoadGenerator;
+import com.github.yewyc.loadgenerator.ClosedLoadGenerator;
 import com.github.yewyc.loadgenerator.LoadStrategy;
 import com.github.yewyc.loadgenerator.OpenLoadGenerator;
-import com.github.yewyc.loadgenerator.ClosedLoadGenerator;
 import com.github.yewyc.loadgenerator.SemiOpenLoadGenerator;
+import com.github.yewyc.scenario.Scenario;
+import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http.HttpClientCodec;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class BenchmarkRun {
 
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
-    public List<StatisticPhase> run(BenchmarkRecord record) {
+    private final ScenarioFactory scenarioFactory;
 
-        URL urlBase;
-        try {
-            urlBase = URI.create(record.urlBase()).toURL();
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
+    public BenchmarkRun(ScenarioFactory scenarioFactory) {
+        this.scenarioFactory = scenarioFactory;
+    }
+
+    public List<StatisticPhase> run(BenchmarkRecord record) throws InterruptedException {
 
         List<StatisticPhase> statistics = new ArrayList<>();
 
         long intervalNs;
-        if (record.mode().equals(LoadStrategy.wrk)) {
+        if (record.mode().equals(LoadStrategy.CLOSED)) {
             intervalNs = 0;
             log.info("Benchmark initialization with a closed model");
         } else {
@@ -59,19 +58,37 @@ public class BenchmarkRun {
         }
 
         EventLoopGroup group = new NioEventLoopGroup(record.threads());
+
+        ServerBootstrap sb = new ServerBootstrap();
+        sb.group(group)
+                .channel(NioServerSocketChannel.class)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) {
+                        // Discard everything received (Black Hole)
+                        ch.pipeline().addLast(new SimpleChannelInboundHandler<Object>() {
+                            @Override
+                            protected void channelRead0(ChannelHandlerContext ctx, Object msg) {}
+                        });
+                    }
+                });
+
+        // Bind to ephemeral port (0) to avoid conflicts
+        Channel serverChannel = sb.bind("127.0.0.1", 0).sync().channel();
+        int localPort = ((InetSocketAddress) serverChannel.localAddress()).getPort();
+        log.info("Embedded anchor server started on port {}", localPort);
+
         try {
             Bootstrap b = new Bootstrap();
-            b.group(group).channel(NioSocketChannel.class)
+            b.group(group)
+                    .channel(NioSocketChannel.class)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
 
                             ChannelPipeline p = ch.pipeline();
-
-                            if (record.hasTimeout()) {
-                                p.addLast(new ReadTimeoutHandler(record.timeout().toSeconds(), TimeUnit.SECONDS));
-                                p.addLast(new WriteTimeoutHandler(record.timeout().toSeconds(), TimeUnit.SECONDS));
-                            }
 
                             // Monitor open and close connections
                             p.addLast(new ChannelInboundHandlerAdapter() {
@@ -88,38 +105,23 @@ public class BenchmarkRun {
                                 }
                             });
 
-                            p.addLast(new HttpClientCodec());
-                            p.addLast(new HttpObjectAggregator(1024 * 1024));
+                            Scenario scenario = scenarioFactory.apply(ch.eventLoop());
 
-                            // Monitor In-flight HTTP requests that haven't completed yet during shutdown
-                            p.addLast(new ChannelInboundHandlerAdapter() {
-                                @Override
-                                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-                                    if (cause instanceof io.netty.handler.codec.PrematureChannelClosureException) {
-                                        log.info("Channel closed during shutdown: " + cause.getMessage());
-                                    } else {
-                                        log.error("Unexpected exception in channel", cause);
-                                    }
-                                    ctx.close();
-                                }
-                            });
-
-                            if (record.mode().equals(LoadStrategy.wrk)) {
-                                p.addLast("run-handler", new ClosedLoadGenerator(urlBase, ch.read()));
-                            } else if (record.mode().equals(LoadStrategy.wrk2)) {
-                                p.addLast("run-handler", new SemiOpenLoadGenerator(urlBase, ch.read(), intervalNs));
-                            } else if (record.mode().equals(LoadStrategy.wrk3)) {
-                                p.addLast("run-handler", new OpenLoadGenerator(urlBase, ch.read(), intervalNs));
+                            if (record.mode().equals(LoadStrategy.CLOSED)) {
+                                p.addLast("run-handler", new ClosedLoadGenerator(ch.read(), scenario));
+                            } else if (record.mode().equals(LoadStrategy.SEMI_OPEN)) {
+                                p.addLast("run-handler", new SemiOpenLoadGenerator(ch.read(), scenario, intervalNs));
+                            } else if (record.mode().equals(LoadStrategy.OPEN)) {
+                                p.addLast("run-handler", new OpenLoadGenerator(ch.read(), scenario, intervalNs));
                             } else {
                                 throw new IllegalStateException();
                             }
                         }
                     });
 
-            List<Channel> channels = new ArrayList<>();
+            Channel[] channels = new Channel[record.connections()];
             for (int i = 0; i < record.connections(); i++) {
-                Channel channel = b.connect(urlBase.getHost(), urlBase.getPort()).sync().channel();
-                channels.add(channel);
+                channels[i] = b.connect("127.0.0.1", localPort).sync().channel();
             }
             if (record.hasWarmUp()) {
                 statistics.add(runWarmupPhase(channels, "warm-up", record.warmUpDuration()));
@@ -137,23 +139,23 @@ public class BenchmarkRun {
         return statistics;
     }
 
-    private StatisticPhase runWarmupPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runWarmupPhase(Channel[] channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
-    private StatisticPhase runTestPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runTestPhase(Channel[] channels, String name, Duration duration) throws InterruptedException {
         return this.runPhase(channels, name, duration);
     }
 
     /*
      * runPhase has block operations
      */
-    private StatisticPhase runPhase(List<Channel> channels, String name, Duration duration) throws InterruptedException {
+    private StatisticPhase runPhase(Channel[] channels, String name, Duration duration) throws InterruptedException {
         List<AbstractLoadGenerator> listeners = new ArrayList<>();
-        channels.forEach(ch -> {
+        for (Channel ch : channels) {
             AbstractLoadGenerator handler = (AbstractLoadGenerator) ch.pipeline().get("run-handler");
             listeners.add(handler);
-        });
+        };
         log.info("Starting the phase: " + name);
         long start = System.nanoTime();
         long end = -1;

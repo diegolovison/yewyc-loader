@@ -1,18 +1,15 @@
 package com.github.yewyc.loadgenerator;
 
+import com.github.yewyc.scenario.Scenario;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.FullHttpResponse;
-
-import java.net.URL;
 
 /**
  * Closed Model - wrk - waits for response before next request
  */
 public class ClosedLoadGenerator extends AbstractLoadGenerator {
 
-    public ClosedLoadGenerator(URL urlBase, Channel channel) {
-        super(urlBase, channel);
+    public ClosedLoadGenerator(Channel channel, Scenario scenario) {
+        super(channel, scenario);
     }
 
     @Override
@@ -22,8 +19,7 @@ public class ClosedLoadGenerator extends AbstractLoadGenerator {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-        super.channelRead0(ctx, msg);
+    protected void onScenarioComplete() {
         eventLoop.execute(this::scheduleNextRequestIfRunning);
     }
 }

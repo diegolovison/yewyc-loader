@@ -11,18 +11,14 @@ import java.time.Duration;
  * @param duration Duration of the benchmark test phase
  * @param rate Operations per second. Ignored if it is a closed model.
  * @param connections Number of concurrent connections to maintain
- * @param urlBase Base URL to benchmark against
  * @param warmUpDuration Duration of the warm-up phase (can be null)
- * @param timeout Timeout for read/write operations (can be null)
  */
 public record BenchmarkRecord(
     int threads,
     Duration duration,
     int rate,
     int connections,
-    String urlBase,
     Duration warmUpDuration,
-    Duration timeout,
     LoadStrategy mode
 ) {
     
@@ -39,17 +35,20 @@ public record BenchmarkRecord(
         if (connections <= 0) {
             throw new IllegalArgumentException("connections must be greater than 0, got: " + connections);
         }
-        if (urlBase == null || urlBase.isBlank()) {
-            throw new IllegalArgumentException("urlBase must not be null or blank");
-        }
         if (warmUpDuration != null && warmUpDuration.isNegative()) {
             throw new IllegalArgumentException("warmUpDuration must not be negative");
         }
-        if (timeout != null && timeout.isNegative()) {
-            throw new IllegalArgumentException("timeout must not be negative");
-        }
         if (mode == null) {
             throw new IllegalArgumentException("mode must not be null or blank");
+        }
+        if (LoadStrategy.CLOSED.equals(mode)) {
+            if (rate != 0) {
+                throw new IllegalArgumentException("rate must not be defined");
+            }
+        } else {
+            if (rate <= 0) {
+                throw new IllegalArgumentException("rate must be greater than 0");
+            }
         }
     }
     
@@ -58,13 +57,6 @@ public record BenchmarkRecord(
      */
     public boolean hasWarmUp() {
         return warmUpDuration != null && !warmUpDuration.isZero();
-    }
-    
-    /**
-     * Returns true if timeout is configured
-     */
-    public boolean hasTimeout() {
-        return timeout != null && !timeout.isZero();
     }
     
     /**

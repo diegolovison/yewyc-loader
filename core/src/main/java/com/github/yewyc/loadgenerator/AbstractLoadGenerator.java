@@ -1,33 +1,25 @@
 package com.github.yewyc.loadgenerator;
 
+import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.stats.SequentialTimeSeriesRecorder;
 import com.github.yewyc.stats.Statistic;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoop;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<FullHttpResponse> {
+public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractLoadGenerator.class);
-    protected static final long nan = Long.MIN_VALUE;
 
     private final Channel channel;
-    private final FullHttpRequest req;
+    protected final EventLoop eventLoop;
+    private final Scenario scenario;
 
     private SequentialTimeSeriesRecorder localRecorder;
     private boolean running = false;
@@ -36,34 +28,12 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
     private Duration duration;
     protected long id;
 
-    protected final EventLoop eventLoop;
-    private final Queue<Long[]> latencyQueue = new ArrayDeque<>();
+    private final Queue<Integer> inflightRequests = new ArrayDeque<>();
 
-    private final boolean assertResponseOperation;
-
-    public AbstractLoadGenerator(URL urlBase, Channel channel) {
-        this.assertResponseOperation = System.getProperty("assertResponseOperation", "false").equals("true");
-        if (this.assertResponseOperation) {
-            log.info("Assert response operation enabled");
-        }
-
-        /*
-         * If you use a single AttributeKey, you are effectively using a single variable to store the "intended time."
-         * When you send multiple requests in parallel (pipelining), the second request will overwrite the
-         * start time of the first request.
-         *
-         * Because HTTP/1.1 guarantees that responses arrive in the same order requests were sent (FIFO),
-         * you should use a simple Queue instead of a channel attribute.
-         *
-         */
-        HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-
+    public AbstractLoadGenerator(Channel channel, Scenario scenario) {
         this.channel = channel;
-        this.req = new DefaultFullHttpRequest(httpVersion, HttpMethod.GET, urlBase.getPath(), Unpooled.EMPTY_BUFFER);
-        this.req.headers().set(HttpHeaderNames.HOST, urlBase.getHost());
-        this.req.headers().set(HttpHeaderNames.CONNECTION, "keep-alive");
-
         this.eventLoop = channel.eventLoop();
+        this.scenario = scenario;
     }
 
     /**
@@ -109,53 +79,44 @@ public abstract class AbstractLoadGenerator extends SimpleChannelInboundHandler<
         if (whenFired > end) {
             this.running = false;
         } else if (channel.isWritable()) {
-            this.latencyQueue.add(new Long[]{this.id, whenFired, intendedTime});
-            FullHttpRequest localRequest = this.req.retainedDuplicate();
-            if (this.assertResponseOperation) {
-                localRequest.headers().set("X-Request-Id", this.id);
-            }
-            channel.writeAndFlush(localRequest).addListener(future -> {
-                if (!future.isSuccess()) {
-                    log.error("Failed to send request {}", this.id, future.cause());
-                }
-            });
+
+            inflightRequests.add(1);
+
+            scenario.execute(this.id)
+                    .whenCompleteAsync((result, error) -> {
+
+                        inflightRequests.poll();
+
+                        long endTime = System.nanoTime();
+                        boolean success = (error == null);
+
+                        if (!success) {
+                            log.error("Scenario failed", error);
+                        }
+
+                        // [FIX] Use the local variables captured by the lambda!
+                        // No need to poll() from a queue.
+                        this.localRecorder.recordValue(whenFired, endTime - intendedTime, success);
+
+                        onScenarioComplete();
+
+                    }, eventLoop);
+
             this.id++;
         }
     }
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-        Long[] data = this.latencyQueue.poll();
-        assert data != null;
-        long requestId = data[0];
-        long requestStartTime = data[1];
-        long requestIntendedTime = data[1];
-        boolean success = true;
-        if (msg.status().code() != 200) {
-            success = false;
-        }
-        this.localRecorder.recordValue(requestStartTime, System.nanoTime() - requestIntendedTime, success);
-        if (log.isTraceEnabled()) {
-            String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
-            log.trace("Response [" + msg.status().code() + "]: " + responseBody);
-        }
-        if (this.assertResponseOperation) {
-            String responseBody = msg.content().toString(io.netty.util.CharsetUtil.UTF_8);
-            if (!responseBody.equals(String.valueOf(requestId))) {
-                throw new RuntimeException("Invalid id");
-            }
-        }
+    public boolean hasInflightRequests() {
+        return !this.inflightRequests.isEmpty();
     }
 
     public Statistic collectStatistics() {
         return new Statistic(this.localRecorder.getHistograms(), this.localRecorder.getErrors());
     }
 
-    public boolean hasInflightRequests() {
-        return !this.latencyQueue.isEmpty();
-    }
-
     public long getEnd() {
         return this.end;
     }
+
+    protected abstract void onScenarioComplete();
 }

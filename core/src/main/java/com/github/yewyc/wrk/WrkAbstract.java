@@ -3,12 +3,16 @@ package com.github.yewyc.wrk;
 import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.benchmark.BenchmarkRecord;
 import com.github.yewyc.loadgenerator.LoadStrategy;
+import com.github.yewyc.scenario.Scenario;
+import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.StatisticPhase;
 import com.github.yewyc.stats.StatisticTick;
+import com.github.yewyc.step.RequestStep;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -42,20 +46,23 @@ public abstract class WrkAbstract {
         int rate = params.containsKey("rate") ? Integer.parseInt(params.get("rate")) : 0;
         String url = args[args.length - 1];
 
-        BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, url, Duration.ofSeconds(6), timeout, getMode());
+        BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, Duration.ofSeconds(6), getMode());
+
+        ScenarioFactory scenarioFactory = (loop) -> new Scenario(
+                List.of(new RequestStep(url, timeout)), loop
+        );
 
         try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {
-            validate(benchmark);
             benchmark
-                    .start()
+                    .start(scenarioFactory)
                     .generateReport(new WrkAbstract.WrkStats(threads, connections, url))
                     .plot();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     protected abstract LoadStrategy getMode();
-
-    protected abstract void validate(Benchmark benchmark);
 
     protected static class WrkStats implements Consumer<StatisticPhase> {
 

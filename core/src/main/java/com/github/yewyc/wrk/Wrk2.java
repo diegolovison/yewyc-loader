@@ -1,6 +1,5 @@
 package com.github.yewyc.wrk;
 
-import com.github.yewyc.benchmark.Benchmark;
 import com.github.yewyc.loadgenerator.LoadStrategy;
 
 // -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=128 -XX:StartFlightRecording=maxsize=1g,dumponexit=true,filename=data.jfr,settings=default
@@ -13,13 +12,6 @@ public class Wrk2 extends WrkAbstract {
 
     @Override
     protected LoadStrategy getMode() {
-        return LoadStrategy.wrk2;
-    }
-
-    @Override
-    protected void validate(Benchmark benchmark) {
-        if (benchmark.getRecord().rate() <= 0) {
-            throw new IllegalStateException("Rate should be greater than 0");
-        }
+        return LoadStrategy.SEMI_OPEN;
     }
 }

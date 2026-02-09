@@ -1,6 +1,7 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.plot.StatisticsPlot;
+import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.stats.StatisticPhase;
 
 import java.io.Closeable;
@@ -18,8 +19,8 @@ public class Benchmark implements Closeable {
         this.record = record;
     }
 
-    public Benchmark start() {
-        BenchmarkRun r = new BenchmarkRun();
+    public Benchmark start(ScenarioFactory scenarioFactory) throws InterruptedException {
+        BenchmarkRun r = new BenchmarkRun(scenarioFactory);
         this.statistics.addAll(r.run(this.record));
         return this;
     }
