@@ -79,27 +79,17 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         if (whenFired > end) {
             this.running = false;
         } else if (channel.isWritable()) {
-
             inflightRequests.add(1);
-
             scenario.execute(this.id)
                     .whenCompleteAsync((result, error) -> {
-
-                        inflightRequests.poll();
-
                         long endTime = System.nanoTime();
+                        inflightRequests.poll();
                         boolean success = (error == null);
-
                         if (!success) {
                             log.error("Scenario failed", error);
                         }
-
-                        // [FIX] Use the local variables captured by the lambda!
-                        // No need to poll() from a queue.
                         this.localRecorder.recordValue(whenFired, endTime - intendedTime, success);
-
                         onScenarioComplete();
-
                     }, eventLoop);
 
             this.id++;

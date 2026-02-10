@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-public class RequestStep implements ScenarioStep {
+public class RequestStep extends ScenarioStep {
 
     private final boolean assertResponseOperation = System.getProperty("assertResponseOperation", "false").equals("true");
 
@@ -46,7 +46,8 @@ public class RequestStep implements ScenarioStep {
 
     private final Duration timeout;
 
-    public RequestStep(String url, Duration timeout) {
+    public RequestStep(double weight, String url, Duration timeout) {
+        super(weight);
         this.timeout = timeout;
 
         URI uri = URI.create(url);
