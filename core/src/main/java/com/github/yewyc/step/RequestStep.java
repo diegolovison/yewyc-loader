@@ -1,7 +1,6 @@
 package com.github.yewyc.step;
 
 import com.github.yewyc.scenario.ScenarioContext;
-import com.github.yewyc.scenario.ScenarioStep;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -31,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-public class RequestStep extends ScenarioStep {
+public class RequestStep extends Step {
 
     private final boolean assertResponseOperation = System.getProperty("assertResponseOperation", "false").equals("true");
 
@@ -46,8 +45,7 @@ public class RequestStep extends ScenarioStep {
 
     private final Duration timeout;
 
-    public RequestStep(double weight, String url, Duration timeout) {
-        super(weight);
+    public RequestStep(String url, Duration timeout) {
         this.timeout = timeout;
 
         URI uri = URI.create(url);

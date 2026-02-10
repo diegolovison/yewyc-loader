@@ -9,6 +9,7 @@ import com.github.yewyc.stats.RateStatistics;
 import com.github.yewyc.stats.StatisticPhase;
 import com.github.yewyc.stats.StatisticTick;
 import com.github.yewyc.step.RequestStep;
+import com.github.yewyc.step.Step;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -48,9 +49,12 @@ public abstract class WrkAbstract {
 
         BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, Duration.ofSeconds(6), getMode());
 
-        ScenarioFactory scenarioFactory = (loop) -> new Scenario(
-                List.of(new RequestStep(1.0, url, timeout)), loop
-        );
+        ScenarioFactory scenarioFactory = (loop) -> {
+            Step step = new RequestStep(url, timeout);
+            Scenario scenario = new Scenario(loop);
+            scenario.addStep(step);
+            return scenario;
+        };
 
         try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {
             benchmark

@@ -1,8 +1,11 @@
 package com.github.yewyc.scenario;
 
+import com.github.yewyc.sequence.Sequence;
 import com.github.yewyc.step.BlockingStep;
+import com.github.yewyc.step.Step;
 import io.netty.channel.EventLoop;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -10,32 +13,65 @@ import java.util.concurrent.ExecutorService;
 
 public class Scenario {
 
-    private final List<ScenarioStep> steps;
+    private final List<Sequence> sequences;
     private final EventLoop eventLoop;
     private ExecutorService workerPool;
     private final ScenarioContext context;
 
-    public Scenario(List<ScenarioStep> steps, EventLoop eventLoop) {
-        this(steps, eventLoop, null);
+    public Scenario(EventLoop eventLoop) {
+        this(eventLoop, null);
     }
 
-    public Scenario(List<ScenarioStep> steps, EventLoop eventLoop, ExecutorService workerPool) {
-        this.steps = steps;
+    public Scenario(EventLoop eventLoop, ExecutorService workerPool) {
         this.eventLoop = eventLoop;
         this.workerPool = workerPool;
         this.context = new ScenarioContext();
+        this.sequences = new ArrayList<>();
     }
 
     public CompletionStage<Void> execute(long id) {
         assert this.eventLoop.inEventLoop();
-        return runStep(0, id);
+        Sequence sequence = getSequence();
+        return runStep(0, sequence, id);
     }
 
-    private CompletionStage<Void> runStep(int index, long id) {
+    private Sequence getSequence() {
+        if (sequences.isEmpty()) {
+            throw new IllegalStateException("No sequences available");
+        }
+
+        if (sequences.size() == 1) {
+            return sequences.get(0);
+        }
+
+        // Calculate total weight
+        double totalWeight = sequences.stream()
+                .mapToDouble(Sequence::getWeight)
+                .sum();
+
+        // Generate random value between 0 and totalWeight
+        double randomValue = Math.random() * totalWeight;
+
+        // Select sequence based on weight
+        double cumulativeWeight = 0.0;
+        for (Sequence sequence : sequences) {
+            cumulativeWeight += sequence.getWeight();
+            if (randomValue <= cumulativeWeight) {
+                return sequence;
+            }
+        }
+
+        // Fallback for floating point precision
+        return sequences.get(sequences.size() - 1);
+    }
+
+    private CompletionStage<Void> runStep(int index, Sequence sequence, long id) {
+        List<Step> steps = sequence.getSteps();
         if (index >= steps.size()) {
             return CompletableFuture.completedFuture(null);
         }
-        ScenarioStep step = steps.get(index);
+
+        Step step = steps.get(index);
 
         CompletionStage<Void> stepExecution;
 
@@ -57,6 +93,10 @@ public class Scenario {
             stepExecution = step.execute(context, this.eventLoop, id);
         }
 
-        return stepExecution.thenComposeAsync(v -> runStep(index + 1, id), this.eventLoop);
+        return stepExecution.thenComposeAsync(v -> runStep(index + 1, sequence, id), this.eventLoop);
+    }
+
+    public void addStep(Step step) {
+        this.sequences.add(new Sequence(1.0, List.of(step)));
     }
 }
