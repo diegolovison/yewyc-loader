@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 
 public class Scenario {
 
-    private final List<Sequence> sequences;
+    private List<Sequence> sequences;
     private final EventLoop eventLoop;
     private ExecutorService workerPool;
     private final ScenarioContext context;
@@ -30,11 +30,13 @@ public class Scenario {
     }
 
     public void start() {
-
+        assert !this.eventLoop.inEventLoop();
+        // must be empty
     }
 
     public void stop() {
-
+        assert !this.eventLoop.inEventLoop();
+        // must be empty
     }
 
     public CompletionStage<Void> execute(long id) {
@@ -105,6 +107,21 @@ public class Scenario {
     }
 
     public void addStep(Step step) {
+        if (!this.sequences.isEmpty()) {
+            throw new IllegalStateException("Cannot add more steps to a single step");
+        }
+        this.sequences = new ArrayList<>(1);
         this.sequences.add(new Sequence(1.0, List.of(step)));
+    }
+
+    public void setSequences(List<Sequence> sequences) {
+        if (!this.sequences.isEmpty()) {
+            throw new IllegalStateException("Cannot set sequences again");
+        }
+        this.sequences = sequences;
+    }
+
+    public ScenarioContext getContext() {
+        return context;
     }
 }
