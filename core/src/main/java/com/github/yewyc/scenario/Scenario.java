@@ -29,6 +29,14 @@ public class Scenario {
         this.sequences = new ArrayList<>();
     }
 
+    public void start() {
+
+    }
+
+    public void stop() {
+
+    }
+
     public CompletionStage<Void> execute(long id) {
         assert this.eventLoop.inEventLoop();
         Sequence sequence = getSequence();

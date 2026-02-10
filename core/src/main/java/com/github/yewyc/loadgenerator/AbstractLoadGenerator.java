@@ -44,6 +44,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         assert !eventLoop.inEventLoop();
         this.duration = duration;
         this.localRecorder = new SequentialTimeSeriesRecorder(this.duration);
+        this.scenario.start();
         return this;
     }
 
@@ -109,4 +110,8 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
     }
 
     protected abstract void onScenarioComplete();
+
+    public void stop() {
+        this.scenario.stop();
+    }
 }

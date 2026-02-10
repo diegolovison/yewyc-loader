@@ -169,6 +169,7 @@ public class BenchmarkRun {
                 if (!handler.hasInflightRequests()) {
                     completedRequests++;
                     end = Math.max(end, handler.getEnd());
+                    handler.stop();
                 }
             }
             if (completedRequests == listeners.size()) {
