@@ -1,5 +1,6 @@
 package com.github.yewyc.sequence;
 
+import com.github.yewyc.scenario.ScenarioContext;
 import com.github.yewyc.step.Step;
 
 import java.util.List;
@@ -20,5 +21,9 @@ public class Sequence {
 
     public List<Step> getSteps() {
         return this.steps;
+    }
+
+    public boolean isOk(ScenarioContext ctx) {
+        return true;
     }
 }

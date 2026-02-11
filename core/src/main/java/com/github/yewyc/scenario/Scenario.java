@@ -59,20 +59,24 @@ public class Scenario {
                 .mapToDouble(Sequence::getWeight)
                 .sum();
 
-        // Generate random value between 0 and totalWeight
-        double randomValue = Math.random() * totalWeight;
-
         // Select sequence based on weight
-        double cumulativeWeight = 0.0;
-        for (Sequence sequence : sequences) {
-            cumulativeWeight += sequence.getWeight();
-            if (randomValue <= cumulativeWeight) {
-                return sequence;
+        int count = 0;
+        while (count < 5) {
+            double randomValue = Math.random() * totalWeight;
+            double cumulativeWeight = 0.0;
+            for (Sequence sequence : sequences) {
+                cumulativeWeight += sequence.getWeight();
+                if (randomValue <= cumulativeWeight) {
+                    // the last one could be not ok
+                    if (sequence.isOk(this.context)) {
+                        return sequence;
+                    }
+                }
             }
+            count++;
         }
 
-        // Fallback for floating point precision
-        return sequences.get(sequences.size() - 1);
+        throw new IllegalStateException("Must be able to find a valid sequence");
     }
 
     private CompletionStage<Void> runStep(int index, Sequence sequence, long id) {
