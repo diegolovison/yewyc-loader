@@ -1,6 +1,7 @@
 package com.github.yewyc.loadgenerator;
 
 import com.github.yewyc.scenario.Scenario;
+import com.github.yewyc.sequence.Sequence;
 import com.github.yewyc.stats.SequentialTimeSeriesRecorder;
 import com.github.yewyc.stats.Statistic;
 import io.netty.channel.Channel;
@@ -27,6 +28,8 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
     private long end;
     private Duration duration;
     protected long id;
+
+    private Sequence next;
 
     private final Queue<Integer> inflightRequests = new ArrayDeque<>();
 
@@ -81,9 +84,10 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
             this.running = false;
         } else if (channel.isWritable()) {
             inflightRequests.add(1);
-            scenario.execute(this.id)
+            scenario.execute(this.id, this.next)
                     .whenCompleteAsync((result, error) -> {
                         long endTime = System.nanoTime();
+                        this.next = result;
                         inflightRequests.poll();
                         boolean success = (error == null);
                         if (!success) {

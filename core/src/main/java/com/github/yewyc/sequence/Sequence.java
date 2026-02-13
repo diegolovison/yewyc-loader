@@ -7,12 +7,18 @@ import java.util.List;
 
 public class Sequence {
 
-    private double weight;
-    private List<Step> steps;
+    private final double weight;
+    private final List<Step> steps;
+    private final Sequence next;
 
     public Sequence(double weight, List<Step> steps) {
+        this(weight, steps, null);
+    }
+
+    public Sequence(double weight, List<Step> steps, Sequence next) {
         this.weight = weight;
         this.steps = steps;
+        this.next = next;
     }
 
     public double getWeight() {
@@ -25,5 +31,9 @@ public class Sequence {
 
     public boolean isOk(ScenarioContext ctx) {
         return true;
+    }
+
+    public Sequence getNext() {
+        return next;
     }
 }

@@ -10,8 +10,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Scenario {
+
+    private static final AtomicInteger scenarioId = new AtomicInteger(42);
 
     private List<Sequence> sequences;
     private final EventLoop eventLoop;
@@ -25,7 +28,7 @@ public class Scenario {
     public Scenario(EventLoop eventLoop, ExecutorService workerPool) {
         this.eventLoop = eventLoop;
         this.workerPool = workerPool;
-        this.context = new ScenarioContext();
+        this.context = new ScenarioContext(this.eventLoop, scenarioId.getAndIncrement());
         this.sequences = new ArrayList<>();
     }
 
@@ -39,9 +42,11 @@ public class Scenario {
         // must be empty
     }
 
-    public CompletionStage<Void> execute(long id) {
+    public CompletionStage<Sequence> execute(long id, Sequence sequence) {
         assert this.eventLoop.inEventLoop();
-        Sequence sequence = getSequence();
+        if (sequence == null) {
+            sequence = getSequence();
+        }
         return runStep(0, sequence, id);
     }
 
@@ -62,7 +67,7 @@ public class Scenario {
         // Select sequence based on weight
         int count = 0;
         while (count < 5) {
-            double randomValue = Math.random() * totalWeight;
+            double randomValue = this.getContext().getRandom().nextDouble() * totalWeight;
             double cumulativeWeight = 0.0;
             for (Sequence sequence : sequences) {
                 cumulativeWeight += sequence.getWeight();
@@ -79,9 +84,12 @@ public class Scenario {
         throw new IllegalStateException("Must be able to find a valid sequence");
     }
 
-    private CompletionStage<Void> runStep(int index, Sequence sequence, long id) {
+    private CompletionStage<Sequence> runStep(int index, Sequence sequence, long id) {
         List<Step> steps = sequence.getSteps();
         if (index >= steps.size()) {
+            if (sequence.getNext() != null && sequence.getNext().isOk(this.context)) {
+                return CompletableFuture.completedFuture(sequence.getNext());
+            }
             return CompletableFuture.completedFuture(null);
         }
 
