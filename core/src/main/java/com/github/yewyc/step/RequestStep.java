@@ -46,6 +46,10 @@ public class RequestStep extends Step {
     private final Duration timeout;
 
     public RequestStep(String url, Duration timeout) {
+        this(null, url, timeout);
+    }
+    public RequestStep(String name, String url, Duration timeout) {
+        super(name);
         this.timeout = timeout;
 
         URI uri = URI.create(url);

@@ -1,7 +1,7 @@
 package com.github.yewyc.scenario;
 
 import com.github.yewyc.sequence.Sequence;
-import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticSequence;
 import com.github.yewyc.step.BlockingStep;
 import com.github.yewyc.step.Step;
 import io.netty.channel.EventLoop;
@@ -124,16 +124,21 @@ public class Scenario {
             stepExecution = CompletableFuture.runAsync(() -> {
                 try {
                     // This call blocks the Worker Thread, NOT the Netty Thread
+                    sequence.markBegin(index);
                     step.execute(context, this.eventLoop, id).toCompletableFuture().join();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }, workerPool);
         } else {
+            sequence.markBegin(index);
             stepExecution = step.execute(context, this.eventLoop, id);
         }
 
-        return stepExecution.thenComposeAsync(v -> runStep(index + 1, sequence, id), this.eventLoop);
+        return stepExecution.thenComposeAsync(v -> {
+            sequence.markEnd(index);
+            return runStep(index + 1, sequence, id);
+        }, this.eventLoop);
     }
 
     public void addStep(Step step) {
@@ -155,11 +160,11 @@ public class Scenario {
         return context;
     }
 
-    public List<Statistic> collectStatistics() {
-        List<Statistic> stats = new ArrayList<>();
+    public List<StatisticSequence> collectStatistics() {
+        List<StatisticSequence> stats = new ArrayList<>();
         for (Sequence sequence : sequences) {
-            Statistic stat = sequence.collectStatistics();
-            stats.add(stat);
+            StatisticSequence sequenceStatistic = sequence.collectStatistics();
+            stats.add(sequenceStatistic);
         }
         return stats;
     }

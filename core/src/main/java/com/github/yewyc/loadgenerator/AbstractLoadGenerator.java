@@ -2,8 +2,7 @@ package com.github.yewyc.loadgenerator;
 
 import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.sequence.Sequence;
-import com.github.yewyc.stats.SequentialTimeSeriesRecorder;
-import com.github.yewyc.stats.Statistic;
+import com.github.yewyc.stats.StatisticSequence;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoop;
@@ -91,7 +90,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
                         if (!success) {
                             log.error("Scenario failed", error);
                         }
-                        sequence.recordValue(whenFired, endTime - intendedTime, success);
+                        sequence.recordValue(whenFired, intendedTime, endTime, success);
                         if (sequence.getNext() != null && sequence.getNext().isOk(scenario.getContext())) {
                             this.next = sequence.getNext();
                         } else {
@@ -112,7 +111,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
      * per seequence
      * @return
      */
-    public List<Statistic> collectStatistics() {
+    public List<StatisticSequence> collectStatistics() {
         return this.scenario.collectStatistics();
     }
 

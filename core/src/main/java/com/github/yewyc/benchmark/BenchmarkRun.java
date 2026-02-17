@@ -7,10 +7,11 @@ import com.github.yewyc.loadgenerator.NonBlockingLoadGenerator;
 import com.github.yewyc.loadgenerator.RateLimitedBlockingLoadGenerator;
 import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.scenario.ScenarioFactory;
-import com.github.yewyc.sequence.Sequence;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
+import com.github.yewyc.stats.StatisticSequence;
+import com.github.yewyc.stats.StatisticTick;
 import com.github.yewyc.writer.CsvWriter;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
@@ -42,12 +43,13 @@ public class BenchmarkRun {
     private final ScenarioFactory scenarioFactory;
     private CsvWriter globalWriter;
     private CsvWriter sequenceWriter;
-    private int currentPhase = 1;
+    private CsvWriter stepWriter;
 
     public BenchmarkRun(ScenarioFactory scenarioFactory) {
         this.scenarioFactory = scenarioFactory;
         this.globalWriter = new CsvWriter();
         this.sequenceWriter = new CsvWriter();
+        this.stepWriter = new CsvWriter();
     }
 
     public List<StatisticPhase> run(BenchmarkRecord record) throws InterruptedException {
@@ -186,24 +188,31 @@ public class BenchmarkRun {
             }
         }
         // it will return per sequence
-        List<Statistic> stats = new ArrayList<>();
+        List<StatisticSequence> statisticSequences = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
-            stats.addAll(listener.collectStatistics());
+            statisticSequences.addAll(listener.collectStatistics());
         }
         log.info("Finished the phase: " + name);
 
         // global
-        StatisticPhase statsPhase = new StatisticPhase(name, Duration.ofNanos(end - start), StatisticConverter.convert(stats));
-        this.globalWriter.append(name, "n/a", "n/a", statsPhase);
+        List<Statistic> globalStats = new ArrayList<>();
+        for (StatisticSequence stat : statisticSequences) {
+            globalStats.add(stat.getStat());
+        }
+        List<StatisticTick> globalTicks = StatisticConverter.convert(globalStats);
+        StatisticPhase statsPhase = new StatisticPhase(name, Duration.ofNanos(end - start), globalTicks);
+        this.globalWriter.append(name, "n/a", "n/a", globalTicks);
 
         // per sequence
-        for (Statistic stat : stats) {
-            // find a better name for StatisticPhase -> now it is a generic thing
-            StatisticPhase sequencePhase = new StatisticPhase(stat.getName(), Duration.ofNanos(end - start), StatisticConverter.convert(List.of(stat)));
-            this.sequenceWriter.append(name, stat.getName(), "n/a", sequencePhase);
-        }
+        for (StatisticSequence statisticSequence : statisticSequences) {
+            Statistic stat = statisticSequence.getStat();
+            this.sequenceWriter.append(name, stat.getName(), "n/a", StatisticConverter.convert(List.of(stat)));
 
-        // per step
+            // per step
+            for (Statistic stepStat : statisticSequence.getStepStatistics()) {
+                this.stepWriter.append(name, stat.getName(), stepStat.getName(), StatisticConverter.convert(List.of(stepStat)));
+            }
+        }
         return statsPhase;
     }
 
@@ -211,5 +220,7 @@ public class BenchmarkRun {
         this.globalWriter.dump();
         System.out.println("------");
         this.sequenceWriter.dump();
+        System.out.println("------");
+        this.stepWriter.dump();
     }
 }
