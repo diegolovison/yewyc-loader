@@ -11,6 +11,6 @@ public class Wrk extends WrkAbstract {
 
     @Override
     protected LoadStrategy getMode() {
-        return LoadStrategy.CLOSED;
+        return LoadStrategy.BLOCKING;
     }
 }

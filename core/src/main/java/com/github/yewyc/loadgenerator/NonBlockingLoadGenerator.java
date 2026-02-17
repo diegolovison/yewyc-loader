@@ -6,13 +6,14 @@ import io.netty.channel.Channel;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Open Model - wrk3 - Fixed rate, fire requests at that rate
+ * Fires requests on a fixed schedule regardless of whether previous requests have completed.
+ * Maintains a constant request rate (RPS) even if the system slows down.
  */
-public class OpenLoadGenerator extends AbstractLoadGenerator {
+public class NonBlockingLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
 
-    public OpenLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
+    public NonBlockingLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
         super(channel, scenario);
         this.intervalNs = intervalNs;
     }

@@ -4,11 +4,12 @@ import com.github.yewyc.scenario.Scenario;
 import io.netty.channel.Channel;
 
 /**
- * Closed Model - wrk - waits for response before next request
+ * Strictly waits for the current request to complete before scheduling the next one.
+ * Throughput is fully dependent on system latency.
  */
-public class ClosedLoadGenerator extends AbstractLoadGenerator {
+public class BlockingLoadGenerator extends AbstractLoadGenerator {
 
-    public ClosedLoadGenerator(Channel channel, Scenario scenario) {
+    public BlockingLoadGenerator(Channel channel, Scenario scenario) {
         super(channel, scenario);
     }
 

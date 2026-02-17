@@ -1,4 +1,4 @@
-### wrk - `ClosedLoadGenerator.java`
+### `BlockingLoadGenerator.java`
 
 **Request Flow:**
 ```
@@ -13,7 +13,7 @@ Request 1 ──► Response 1 ──► Request 2 ──► Response 2 ──�
 - Maintains constant number of in-flight requests
 - Suffers from coordinated omission in latency measurements
 
-### wrk2 - `SemiOpenLoadGenerator.java`
+### `RateLimitedBlockingLoadGenerator.java`
 
 **Request Flow:**
 ```
@@ -24,12 +24,12 @@ Actual:   R0 ──► R1 ──► R2 ──► R3 ──► R4
 ```
 
 **Key Points:**
-- Tracks intended send times
+- Waits for the current request to complete, but inserts a delay if the response was too fast
 - Waits for response before sending next request
 - Avoids coordinated omission by recording intended vs actual times
 - May fall behind schedule if server is slow
 
-### wrk3 - `OpenLoadGenerator.java`
+### `NonBlockingLoadGenerator.java`
 
 **Request Flow:**
 ```

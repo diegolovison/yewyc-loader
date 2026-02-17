@@ -1,10 +1,10 @@
 package com.github.yewyc.benchmark;
 
 import com.github.yewyc.loadgenerator.AbstractLoadGenerator;
-import com.github.yewyc.loadgenerator.ClosedLoadGenerator;
+import com.github.yewyc.loadgenerator.BlockingLoadGenerator;
 import com.github.yewyc.loadgenerator.LoadStrategy;
-import com.github.yewyc.loadgenerator.OpenLoadGenerator;
-import com.github.yewyc.loadgenerator.SemiOpenLoadGenerator;
+import com.github.yewyc.loadgenerator.NonBlockingLoadGenerator;
+import com.github.yewyc.loadgenerator.RateLimitedBlockingLoadGenerator;
 import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.stats.Statistic;
@@ -48,7 +48,7 @@ public class BenchmarkRun {
         List<StatisticPhase> statistics = new ArrayList<>();
 
         long intervalNs;
-        if (record.mode().equals(LoadStrategy.CLOSED)) {
+        if (record.mode().equals(LoadStrategy.BLOCKING)) {
             intervalNs = 0;
             log.info("Benchmark initialization with a closed model");
         } else {
@@ -107,12 +107,12 @@ public class BenchmarkRun {
 
                             Scenario scenario = scenarioFactory.apply(ch.eventLoop());
 
-                            if (record.mode().equals(LoadStrategy.CLOSED)) {
-                                p.addLast("run-handler", new ClosedLoadGenerator(ch.read(), scenario));
-                            } else if (record.mode().equals(LoadStrategy.SEMI_OPEN)) {
-                                p.addLast("run-handler", new SemiOpenLoadGenerator(ch.read(), scenario, intervalNs));
-                            } else if (record.mode().equals(LoadStrategy.OPEN)) {
-                                p.addLast("run-handler", new OpenLoadGenerator(ch.read(), scenario, intervalNs));
+                            if (record.mode().equals(LoadStrategy.BLOCKING)) {
+                                p.addLast("run-handler", new BlockingLoadGenerator(ch.read(), scenario));
+                            } else if (record.mode().equals(LoadStrategy.RATE_LIMIT)) {
+                                p.addLast("run-handler", new RateLimitedBlockingLoadGenerator(ch.read(), scenario, intervalNs));
+                            } else if (record.mode().equals(LoadStrategy.NON_BLOCKING)) {
+                                p.addLast("run-handler", new NonBlockingLoadGenerator(ch.read(), scenario, intervalNs));
                             } else {
                                 throw new IllegalStateException();
                             }

@@ -12,6 +12,6 @@ public class Wrk2 extends WrkAbstract {
 
     @Override
     protected LoadStrategy getMode() {
-        return LoadStrategy.SEMI_OPEN;
+        return LoadStrategy.RATE_LIMIT;
     }
 }

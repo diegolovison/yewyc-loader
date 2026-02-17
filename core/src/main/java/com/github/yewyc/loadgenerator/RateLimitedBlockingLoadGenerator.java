@@ -6,13 +6,14 @@ import io.netty.channel.Channel;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Closed Model - wrk2 - Response-driven with intended time
+ * Waits for the current request to complete, but inserts a delay if the response was too fast
+ * to ensure the rate does not exceed the target interval.
  */
-public class SemiOpenLoadGenerator extends AbstractLoadGenerator {
+public class RateLimitedBlockingLoadGenerator extends AbstractLoadGenerator {
 
     private final long intervalNs;
 
-    public SemiOpenLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
+    public RateLimitedBlockingLoadGenerator(Channel channel, Scenario scenario, long intervalNs) {
         super(channel, scenario);
         this.intervalNs = intervalNs;
     }

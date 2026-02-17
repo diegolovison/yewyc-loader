@@ -41,7 +41,7 @@ public record BenchmarkRecord(
         if (mode == null) {
             throw new IllegalArgumentException("mode must not be null or blank");
         }
-        if (LoadStrategy.CLOSED.equals(mode)) {
+        if (LoadStrategy.BLOCKING.equals(mode)) {
             if (rate != 0) {
                 throw new IllegalArgumentException("rate must not be defined");
             }
