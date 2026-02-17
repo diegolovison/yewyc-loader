@@ -31,7 +31,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
 
     private Sequence next;
 
-    private final Queue<Integer> inflightRequests = new ArrayDeque<>();
+    private int inflightRequests = 0;
 
     public AbstractLoadGenerator(Channel channel, Scenario scenario) {
         this.channel = channel;
@@ -83,12 +83,12 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         if (whenFired > end) {
             this.running = false;
         } else if (channel.isWritable()) {
-            inflightRequests.add(1);
+            inflightRequests += 1;
             scenario.execute(this.id, this.next)
                     .whenCompleteAsync((result, error) -> {
                         long endTime = System.nanoTime();
                         this.next = result;
-                        inflightRequests.poll();
+                        inflightRequests -= 1;
                         boolean success = (error == null);
                         if (!success) {
                             log.error("Scenario failed", error);
@@ -102,7 +102,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
     }
 
     public boolean hasInflightRequests() {
-        return !this.inflightRequests.isEmpty();
+        return this.inflightRequests > 0;
     }
 
     public Statistic collectStatistics() {
