@@ -15,12 +15,18 @@ public class Statistic {
     public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long oneSecInNanos = TimeUnit.SECONDS.toNanos(1);
 
+    private final List<Long> nanoTimes;
     private final List<Histogram> histograms;
     private final List<Integer> errors;
 
-    public Statistic(List<Histogram> histograms, List<Integer> errors) {
+    public Statistic(List<Long> nanoTimes, List<Histogram> histograms, List<Integer> errors) {
+        this.nanoTimes = nanoTimes;
         this.histograms = histograms;
         this.errors = errors;
+    }
+
+    public List<Long> getNanoTimes() {
+        return nanoTimes;
     }
 
     public List<Histogram> getHistograms() {

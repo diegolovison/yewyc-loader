@@ -11,8 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Queue;
+import java.util.List;
 
 public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter {
 
@@ -22,7 +21,6 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
     protected final EventLoop eventLoop;
     private final Scenario scenario;
 
-    private SequentialTimeSeriesRecorder localRecorder;
     private boolean running = false;
     protected long start;
     private long end;
@@ -46,13 +44,13 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
     public AbstractLoadGenerator prepare(Duration duration) {
         assert !eventLoop.inEventLoop();
         this.duration = duration;
-        this.localRecorder = new SequentialTimeSeriesRecorder(this.duration);
-        this.scenario.start();
+        this.scenario.prepare(duration);
         return this;
     }
 
     /**
      * delegate. in this case, the SimpleChannelInboundHandler will have small diff when compared with others
+     * super fast operations
      */
     public void start() {
         assert !eventLoop.inEventLoop();
@@ -64,7 +62,7 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         this.running = true;
         this.id = 0;
         this.start = System.nanoTime();
-        this.localRecorder.start(this.start);
+        this.scenario.start(start);
         this.end = this.start + this.duration.toNanos();
         scheduleNextRequest();
     }
@@ -85,15 +83,20 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         } else if (channel.isWritable()) {
             inflightRequests += 1;
             scenario.execute(this.id, this.next)
-                    .whenCompleteAsync((result, error) -> {
+                    .whenCompleteAsync((sequence, error) -> {
                         long endTime = System.nanoTime();
-                        this.next = result;
                         inflightRequests -= 1;
+                        assert intendedTime >= 0;
                         boolean success = (error == null);
                         if (!success) {
                             log.error("Scenario failed", error);
                         }
-                        this.localRecorder.recordValue(whenFired, endTime - intendedTime, success);
+                        sequence.recordValue(whenFired, endTime - intendedTime, success);
+                        if (sequence.getNext() != null && sequence.getNext().isOk(scenario.getContext())) {
+                            this.next = sequence.getNext();
+                        } else {
+                            this.next = null;
+                        }
                         onScenarioComplete();
                     }, eventLoop);
 
@@ -105,8 +108,12 @@ public abstract class AbstractLoadGenerator extends ChannelInboundHandlerAdapter
         return this.inflightRequests > 0;
     }
 
-    public Statistic collectStatistics() {
-        return new Statistic(this.localRecorder.getHistograms(), this.localRecorder.getErrors());
+    /**
+     * per seequence
+     * @return
+     */
+    public List<Statistic> collectStatistics() {
+        return this.scenario.collectStatistics();
     }
 
     public long getEnd() {

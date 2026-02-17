@@ -181,7 +181,7 @@ public class BenchmarkRun {
 
         List<Statistic> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
-            stats.add(listener.collectStatistics());
+            stats.addAll(listener.collectStatistics());
         }
         log.info("Finished the phase: " + name);
         return new StatisticPhase(name, Duration.ofNanos(end - start), StatisticConverter.convert(stats));

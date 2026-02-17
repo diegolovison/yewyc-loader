@@ -1,10 +1,12 @@
 package com.github.yewyc.scenario;
 
 import com.github.yewyc.sequence.Sequence;
+import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.step.BlockingStep;
 import com.github.yewyc.step.Step;
 import io.netty.channel.EventLoop;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -32,14 +34,28 @@ public class Scenario {
         this.sequences = new ArrayList<>();
     }
 
-    public void start() {
+    /**
+     * slow operations
+     * @param duration
+     */
+    public final void prepare(Duration duration) {
         assert !this.eventLoop.inEventLoop();
-        // must be empty
+        for (Sequence sequence : sequences) {
+            sequence.prepare(duration);
+        }
     }
 
-    public void stop() {
+    /**
+     * fast operations
+     */
+    public final void start(long start) {
+        for (Sequence sequence : sequences) {
+            sequence.start(start);
+        }
+    }
+
+    public final void stop() {
         assert !this.eventLoop.inEventLoop();
-        // must be empty
     }
 
     public CompletionStage<Sequence> execute(long id, Sequence sequence) {
@@ -87,10 +103,7 @@ public class Scenario {
     private CompletionStage<Sequence> runStep(int index, Sequence sequence, long id) {
         List<Step> steps = sequence.getSteps();
         if (index >= steps.size()) {
-            if (sequence.getNext() != null && sequence.getNext().isOk(this.context)) {
-                return CompletableFuture.completedFuture(sequence.getNext());
-            }
-            return CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(sequence);
         }
 
         Step step = steps.get(index);
@@ -135,5 +148,14 @@ public class Scenario {
 
     public ScenarioContext getContext() {
         return context;
+    }
+
+    public List<Statistic> collectStatistics() {
+        List<Statistic> stats = new ArrayList<>();
+        for (Sequence sequence : sequences) {
+            Statistic stat = sequence.collectStatistics();
+            stats.add(stat);
+        }
+        return stats;
     }
 }

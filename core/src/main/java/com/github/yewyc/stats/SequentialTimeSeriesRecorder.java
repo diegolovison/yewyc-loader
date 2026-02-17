@@ -13,6 +13,7 @@ import static com.github.yewyc.stats.Statistic.oneSecInNanos;
 public class SequentialTimeSeriesRecorder {
 
     private static class Bucket {
+        long currentNanoTime;
         int errors;
         final Histogram histogram;
 
@@ -71,11 +72,22 @@ public class SequentialTimeSeriesRecorder {
                 index = buffer.length - 1;
             }
         }
+        if (buffer[index].currentNanoTime == 0) {
+            buffer[index].currentNanoTime = currentNanoTime;
+        }
         Bucket bucket = buffer[index];
         if (!success) {
             bucket.errors++;
         }
         bucket.histogram.recordValue(duration);
+    }
+
+    public List<Long> getTimes() {
+        List<Long> times = new ArrayList<>();
+        for (Bucket b : buffer) {
+            times.add(b.currentNanoTime);
+        }
+        return times;
     }
 
     public List<Histogram> getHistograms() {
