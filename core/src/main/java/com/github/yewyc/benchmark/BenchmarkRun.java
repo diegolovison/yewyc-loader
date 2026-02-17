@@ -7,9 +7,11 @@ import com.github.yewyc.loadgenerator.NonBlockingLoadGenerator;
 import com.github.yewyc.loadgenerator.RateLimitedBlockingLoadGenerator;
 import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.scenario.ScenarioFactory;
+import com.github.yewyc.sequence.Sequence;
 import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.stats.StatisticConverter;
 import com.github.yewyc.stats.StatisticPhase;
+import com.github.yewyc.writer.CsvWriter;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -38,9 +40,14 @@ public class BenchmarkRun {
     private static final Logger log = LoggerFactory.getLogger(BenchmarkRun.class);
 
     private final ScenarioFactory scenarioFactory;
+    private CsvWriter globalWriter;
+    private CsvWriter sequenceWriter;
+    private int currentPhase = 1;
 
     public BenchmarkRun(ScenarioFactory scenarioFactory) {
         this.scenarioFactory = scenarioFactory;
+        this.globalWriter = new CsvWriter();
+        this.sequenceWriter = new CsvWriter();
     }
 
     public List<StatisticPhase> run(BenchmarkRecord record) throws InterruptedException {
@@ -178,12 +185,31 @@ public class BenchmarkRun {
                 Thread.sleep(1);
             }
         }
-
+        // it will return per sequence
         List<Statistic> stats = new ArrayList<>();
         for (AbstractLoadGenerator listener : listeners) {
             stats.addAll(listener.collectStatistics());
         }
         log.info("Finished the phase: " + name);
-        return new StatisticPhase(name, Duration.ofNanos(end - start), StatisticConverter.convert(stats));
+
+        // global
+        StatisticPhase statsPhase = new StatisticPhase(name, Duration.ofNanos(end - start), StatisticConverter.convert(stats));
+        this.globalWriter.append(name, "n/a", "n/a", statsPhase);
+
+        // per sequence
+        for (Statistic stat : stats) {
+            // find a better name for StatisticPhase -> now it is a generic thing
+            StatisticPhase sequencePhase = new StatisticPhase(stat.getName(), Duration.ofNanos(end - start), StatisticConverter.convert(List.of(stat)));
+            this.sequenceWriter.append(name, stat.getName(), "n/a", sequencePhase);
+        }
+
+        // per step
+        return statsPhase;
+    }
+
+    public void dump() {
+        this.globalWriter.dump();
+        System.out.println("------");
+        this.sequenceWriter.dump();
     }
 }

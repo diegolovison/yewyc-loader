@@ -10,6 +10,7 @@ import java.util.List;
 
 public class Sequence {
 
+    private final String name;
     private final double weight;
     private final List<Step> steps;
     private final Sequence next;
@@ -20,7 +21,16 @@ public class Sequence {
         this(weight, steps, null);
     }
 
+    public Sequence(String name, double weight, List<Step> steps) {
+        this(name, weight, steps, null);
+    }
+
     public Sequence(double weight, List<Step> steps, Sequence next) {
+        this("default", weight, steps, next);
+    }
+
+    public Sequence(String name, double weight, List<Step> steps, Sequence next) {
+        this.name = name;
         this.weight = weight;
         this.steps = steps;
         this.next = next;
@@ -63,6 +73,10 @@ public class Sequence {
     }
 
     public Statistic collectStatistics() {
-        return new Statistic(this.localRecorder.getTimes(), this.localRecorder.getHistograms(), this.localRecorder.getErrors());
+        return new Statistic(this.getName(), this.localRecorder.getTimes(), this.localRecorder.getHistograms(), this.localRecorder.getErrors());
+    }
+
+    public String getName() {
+        return this.name;
     }
 }

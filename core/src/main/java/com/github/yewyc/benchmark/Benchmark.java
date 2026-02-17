@@ -12,16 +12,19 @@ import java.util.function.Consumer;
 public class Benchmark implements Closeable {
 
     private final BenchmarkRecord record;
-
     private final List<StatisticPhase> statistics = new ArrayList<>();
+    private BenchmarkRun benchmarkRun;
 
     public Benchmark(BenchmarkRecord record) {
         this.record = record;
     }
 
     public Benchmark start(ScenarioFactory scenarioFactory) throws InterruptedException {
-        BenchmarkRun r = new BenchmarkRun(scenarioFactory);
-        this.statistics.addAll(r.run(this.record));
+        if (benchmarkRun != null) {
+            throw new IllegalStateException("Benchmark already started");
+        }
+        this.benchmarkRun = new BenchmarkRun(scenarioFactory);
+        this.statistics.addAll(this.benchmarkRun.run(this.record));
         return this;
     }
 
@@ -36,6 +39,9 @@ public class Benchmark implements Closeable {
     }
 
     public Benchmark plot() {
+        if (statistics.isEmpty()) {
+            throw new RuntimeException("No tasks have been executed");
+        }
         StatisticsPlot.plot(statistics);
         return this;
     }
@@ -46,5 +52,12 @@ public class Benchmark implements Closeable {
 
     public BenchmarkRecord getRecord() {
         return record;
+    }
+
+    public void dump() {
+        if (statistics.isEmpty()) {
+            throw new RuntimeException("No tasks have been executed");
+        }
+        this.benchmarkRun.dump();
     }
 }

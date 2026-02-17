@@ -5,6 +5,8 @@ import com.github.yewyc.stats.Statistic;
 import com.github.yewyc.step.BlockingStep;
 import com.github.yewyc.step.Step;
 import io.netty.channel.EventLoop;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -15,6 +17,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Scenario {
+
+    private static final Logger log = LoggerFactory.getLogger(Scenario.class);
 
     private static final AtomicInteger scenarioId = new AtomicInteger(42);
 
@@ -111,6 +115,7 @@ public class Scenario {
         CompletionStage<Void> stepExecution;
 
         if (step instanceof BlockingStep) {
+            log.warn("BlockingStep was not tested.");
             if (workerPool == null) {
                 return CompletableFuture.failedFuture(
                         new IllegalStateException("Scenario contains a BlockingStep but no ExecutorService (workerPool) was provided.")

@@ -15,11 +15,13 @@ public class Statistic {
     public static final double scale = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long oneSecInNanos = TimeUnit.SECONDS.toNanos(1);
 
+    private final String name;
     private final List<Long> nanoTimes;
     private final List<Histogram> histograms;
     private final List<Integer> errors;
 
-    public Statistic(List<Long> nanoTimes, List<Histogram> histograms, List<Integer> errors) {
+    public Statistic(String name, List<Long> nanoTimes, List<Histogram> histograms, List<Integer> errors) {
+        this.name = name;
         this.nanoTimes = nanoTimes;
         this.histograms = histograms;
         this.errors = errors;
@@ -31,5 +33,9 @@ public class Statistic {
 
     public List<Histogram> getHistograms() {
         return histograms;
+    }
+
+    public String getName() {
+        return this.name;
     }
 }
