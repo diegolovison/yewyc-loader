@@ -6,11 +6,12 @@ import com.github.yewyc.loadgenerator.LoadStrategy;
 import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.step.RequestStep;
-import com.github.yewyc.step.Step;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public abstract class WrkAbstract {
 
@@ -43,10 +44,13 @@ public abstract class WrkAbstract {
         BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, Duration.ofSeconds(duration), rate, connections, Duration.ofSeconds(6), getMode());
 
         ScenarioFactory scenarioFactory = (loop) -> {
-            Step step = new RequestStep(url, timeout);
-            Scenario scenario = new Scenario(loop);
-            scenario.addStep(step);
-            return scenario;
+            try (ExecutorService executor = Executors.newFixedThreadPool(1)) {
+                RequestStep step = new RequestStep(url, timeout);
+                step.setupClient(loop, executor);
+                Scenario scenario = new Scenario(loop);
+                scenario.addStep(step);
+                return scenario;
+            }
         };
 
         try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {

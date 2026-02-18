@@ -28,6 +28,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class RequestStep extends Step {
@@ -39,7 +40,6 @@ public class RequestStep extends Step {
     private final int port;
     private final DefaultFullHttpRequest sharedRequest;
 
-    // State: We hold the connection open across multiple execute() calls
     private Channel activeChannel;
     private CompletableFuture<Void> currentFuture;
 
@@ -69,39 +69,9 @@ public class RequestStep extends Step {
 
     @Override
     public CompletionStage<Void> execute(ScenarioContext ctx, EventLoop loop, long id) {
+        assert loop.inEventLoop();
         this.currentFuture = new CompletableFuture<>();
-
-        // A. FAST PATH: Connection is already open and healthy
-        if (activeChannel != null && activeChannel.isActive()) {
-            sendRequest(activeChannel, id);
-            return currentFuture;
-        }
-
-        // B. SLOW PATH: First time connecting (or reconnecting)
-        bootstrap.clone()
-                .group(loop)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) {
-
-                        ch.pipeline().addLast(new ReadTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
-                        ch.pipeline().addLast(new WriteTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
-
-                        ch.pipeline().addLast(new HttpClientCodec(), new HttpObjectAggregator(1024 * 1024));
-                        // We add the handler ONCE. It stays in the pipeline.
-                        ch.pipeline().addLast(new ResponseHandler());
-                    }
-                })
-                .connect(host, port)
-                .addListener((ChannelFuture cf) -> {
-                    if (cf.isSuccess()) {
-                        this.activeChannel = cf.channel();
-                        sendRequest(this.activeChannel, id);
-                    } else {
-                        currentFuture.completeExceptionally(cf.cause());
-                    }
-                });
-
+        sendRequest(activeChannel, id);
         return currentFuture;
     }
 
@@ -111,6 +81,43 @@ public class RequestStep extends Step {
             localRequest.headers().set("X-Request-Id", id);
         }
         ch.writeAndFlush(localRequest);
+    }
+
+    public CompletableFuture<Void> setupClient(EventLoop loop, ExecutorService workerPool) {
+        assert loop.inEventLoop();
+        // Submit to worker pool
+        CompletableFuture<CompletableFuture<Void>> nestedFuture =
+                CompletableFuture.supplyAsync(() -> setupClient(loop), workerPool);
+        return nestedFuture.thenCompose(future -> future);
+    }
+
+    private CompletableFuture<Void> setupClient(EventLoop loop) {
+        assert !loop.inEventLoop();
+        CompletableFuture<Void> channelFuture = new CompletableFuture<>();
+
+        loop.execute(() -> {
+            bootstrap.clone()
+                    .group(loop)
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new ReadTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
+                            ch.pipeline().addLast(new WriteTimeoutHandler(timeout.toSeconds(), TimeUnit.SECONDS));
+                            ch.pipeline().addLast(new HttpClientCodec(), new HttpObjectAggregator(1024 * 1024));
+                            ch.pipeline().addLast(new ResponseHandler());
+                        }
+                    })
+                    .connect(host, port)
+                    .addListener((ChannelFuture cf) -> {
+                        if (cf.isSuccess()) {
+                            this.activeChannel = cf.channel();
+                            channelFuture.complete(null);
+                        } else {
+                            channelFuture.completeExceptionally(cf.cause());
+                        }
+                    });
+        });
+        return channelFuture;
     }
 
     private class ResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> {

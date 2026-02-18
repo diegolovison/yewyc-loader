@@ -7,11 +7,14 @@ import com.github.yewyc.scenario.Scenario;
 import com.github.yewyc.scenario.ScenarioFactory;
 import com.github.yewyc.sequence.Sequence;
 import com.github.yewyc.step.RequestStep;
+import com.github.yewyc.step.Step;
 import com.github.yewyc.wrk.WrkStats;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DummyBenchmark {
 
@@ -31,12 +34,21 @@ public class DummyBenchmark {
         BenchmarkRecord benchmarkRecord = new BenchmarkRecord(threads, duration, rate, connections, Duration.ofSeconds(6), LoadStrategy.RATE_LIMIT);
 
         ScenarioFactory scenarioFactory = (loop) -> {
-            Scenario scenario = new Scenario(loop);
-            List<Sequence> sequences = new ArrayList<>();
-            sequences.add(new Sequence("seq-1", 0.5, List.of(new RequestStep("req-1-1", url, timeout), new RequestStep("req-1-2", url, timeout))));
-            sequences.add(new Sequence("seq-2", 0.5, List.of(new RequestStep("req-2-1", url, timeout), new RequestStep("req-2-2", url, timeout))));
-            scenario.setSequences(sequences);
-            return scenario;
+            try (ExecutorService executor = Executors.newFixedThreadPool(1)) {
+                Scenario scenario = new Scenario(loop);
+                List<Sequence> sequences = new ArrayList<>();
+                for (int i = 0; i < 2; i++) {
+                    List<Step> steps = new ArrayList<>();
+                    for (int j = 0; j < 2; j++) {
+                        RequestStep step = new RequestStep("req-" + i + "-" + j, url, timeout);
+                        step.setupClient(loop, executor);
+                        steps.add(step);
+                    }
+                    sequences.add(new Sequence("seq-" + i, 0.5, steps));
+                }
+                scenario.setSequences(sequences);
+                return scenario;
+            }
         };
 
         try (Benchmark benchmark =  new Benchmark(benchmarkRecord)) {
